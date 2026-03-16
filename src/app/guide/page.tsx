@@ -123,8 +123,9 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
+    // Augmentation du délai à 30s pour laisser plus de temps aux requêtes CORS
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+      setTimeout(() => reject(new Error('TIMEOUT')), 30000)
     );
 
     try {

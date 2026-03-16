@@ -3,10 +3,9 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     // Dossier spécifique pour les espèces, accessible par tous pour la lecture
-    // Ajout d'un commentaire pour forcer le déploiement des règles
+    // Les écritures nécessitent d'être authentifié (anonyme autorisé)
     match /species/{allPaths=**} {
       allow read: if true;
-      // Autoriser l'écriture pour tout utilisateur authentifié (anonyme ou non)
       allow write: if request.auth != null;
     }
     
