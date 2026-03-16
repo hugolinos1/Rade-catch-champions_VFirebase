@@ -26,8 +26,8 @@ export default function ConcoursPage() {
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const usersQuery = useMemoFirebase(() => currentUser ? collection(firestore, 'users') : null, [firestore, currentUser]);
   const recentCatchesQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'catches'), orderBy('timestamp', 'desc'), limit(10)), 
-  [firestore]);
+    currentUser ? query(collection(firestore, 'catches'), orderBy('timestamp', 'desc'), limit(10)) : null, 
+  [firestore, currentUser]);
 
   const { data: species } = useCollection<FishSpecies>(fishQuery);
   const { data: allUsers } = useCollection<UserProfile>(usersQuery);

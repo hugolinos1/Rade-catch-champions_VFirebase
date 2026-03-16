@@ -8,22 +8,21 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && (
-        exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
-      );
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // 1. CAPTURES : Lecture publique pour le classement et le flux en temps réel
+    // 1. CAPTURES : Lecture publique indispensable pour le classement et le flux en temps réel
     match /catches/{catchId} {
-      allow get, list: if true;
+      allow read: if true;
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
-    // 2. UTILISATEURS : Lecture autorisée pour tous les membres (nécessaire pour le concours et classement)
+    // 2. UTILISATEURS : Lecture autorisée pour tous les membres connectés
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow read: if isSignedIn();
       allow create, update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
       allow delete: if isAdmin();
     }
@@ -36,9 +35,7 @@ service cloud.firestore {
 
     // 4. CODES D'INVITATION : Gestion strictement réservée aux Admins
     match /registration_codes/{codeId} {
-      // Permission de lecture unitaire pour la vérification lors de l'inscription
       allow get: if isSignedIn();
-      // Listage et écriture réservés aux admins
       allow list, write: if isAdmin();
     }
 
