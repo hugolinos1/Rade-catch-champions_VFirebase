@@ -7,8 +7,6 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Vérifie si le rôle dans le document utilisateur est 'admin'
-      // ou si l'utilisateur est présent dans la collection roles_admin
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
@@ -20,7 +18,8 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get, list: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow create, update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
@@ -47,7 +46,9 @@ service cloud.firestore {
     }
 
     match /registration_codes/{codeId} {
-      allow read, write: if isAdmin();
+      // Permet la lecture pour vérifier le code lors de l'inscription
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
     }
   }
 }
