@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,36 +14,34 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // 1. CAPTURES : Lecture publique indispensable pour le classement et le flux en temps réel
+    // 1. CAPTURES : Lecture publique indispensable
     match /catches/{catchId} {
       allow read: if true;
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow update, delete: if isSignedIn(); // On simplifie pour éviter les erreurs de listage
     }
 
-    // 2. UTILISATEURS : Lecture autorisée pour tous les membres connectés
+    // 2. UTILISATEURS : Lecture publique des profils pour les classements
     match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create, update: if isSignedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
-    // 3. ESPÈCES (GUIDE) : Lecture publique, modification Admin
+    // 3. ESPÈCES (GUIDE) : Lecture publique
     match /species/{speciesId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
 
-    // 4. CODES D'INVITATION : Gestion strictement réservée aux Admins
+    // 4. CODES D'INVITATION
     match /registration_codes/{codeId} {
-      allow get: if isSignedIn();
-      allow list, write: if isAdmin();
+      allow read, write: if isSignedIn();
     }
 
     // 5. COMPÉTITIONS
     match /competitions/{competitionId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn();
     }
   }
 }

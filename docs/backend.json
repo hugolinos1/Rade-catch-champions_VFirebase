@@ -37,14 +37,14 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "userName": { "type": "string" },
+        "anglerId": { "type": "string" },
+        "anglerName": { "type": "string" },
         "fishId": { "type": "string" },
         "fishName": { "type": "string" },
-        "length": { "type": "number" },
+        "size": { "type": "number" },
         "weight": { "type": "number" },
-        "photoUrl": { "type": "string" },
-        "timestamp": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "date": { "type": "string" },
         "points": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
       }
