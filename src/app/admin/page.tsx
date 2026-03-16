@@ -41,7 +41,8 @@ import {
   Fish,
   MapPin,
   Scale,
-  ShieldCheck
+  ShieldCheck,
+  Copy
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -64,6 +65,7 @@ export default function AdminPage() {
   // States for generation & updates
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCreatingContest, setIsCreatingContest] = useState(false);
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
   
   // State for modals
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
@@ -137,6 +139,13 @@ export default function AdminPage() {
       setIsGenerating(false);
       toast({ title: "Code généré", description: `Le code ${newCode} est prêt.` });
     }, 500);
+  };
+
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedCode(code);
+    toast({ title: "Code copié", description: "Le code a été copié dans le presse-papier." });
+    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   const handleDeleteCode = (id: string) => {
@@ -396,14 +405,24 @@ export default function AdminPage() {
                             {new Date(c.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          onClick={() => handleDeleteCode(c.id)}
-                          className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-destructive transition-all"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleCopyCode(c.code)}
+                            className="text-slate-400 hover:text-primary"
+                          >
+                            {copiedCode === c.code ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => handleDeleteCode(c.id)}
+                            className="text-slate-300 hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                     {activeCodes?.length === 0 && !loadingCodes && (
