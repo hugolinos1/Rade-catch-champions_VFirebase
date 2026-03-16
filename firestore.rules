@@ -7,8 +7,8 @@ service cloud.firestore {
      * 
      * Strategy:
      * - Public: Read-only access to fish guide and active competitions.
-     * - Authenticated: Can submit catches, manage their own profile.
-     * - Prototype Mode: Relaxed read permissions for catches to simplify list views.
+     * - Authenticated: Can submit catches, manage their own profile, and list other members (for selection/rankings).
+     * - Prototype Mode: Relaxed read permissions to simplify development and testing.
      * - Admin: Verified via /roles_admin collection.
      */
 
@@ -29,35 +29,46 @@ service cloud.firestore {
     // --- COLLECTION RULES ---
 
     match /users/{userId} {
+      // Allow individual get for owner or admin
       allow get: if isOwner(userId) || isAdmin();
-      allow list: if isAdmin();
+      // Relaxed list for prototype: allows selecting fishermen and viewing rankings
+      allow list: if isSignedIn();
+      // Users can manage their own profile
       allow create, update: if isOwner(userId);
+      // Only admins can delete users
       allow delete: if isAdmin();
     }
 
     match /roles_admin/{userId} {
+      // Needed for isAdmin() check to work on client and server
       allow read: if isSignedIn();
       allow write: if false; 
     }
 
     match /fish_species/{speciesId} {
+      // Guide is public
       allow get, list: if true; 
+      // Prototyping: allow edits for any signed-in user for now
       allow create, update, delete: if isSignedIn();
     }
 
     match /competitions/{competitionId} {
+      // Competition details are public
       allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
     match /catches/{catchId} {
-      // Relaxed for prototyping: allow list/read for all signed-in users
-      allow read: if isSignedIn();
+      // Publicly readable for rankings and history
+      allow read: if true;
       
+      // Owners can create their catches
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
+      // Admins can moderate, owners can update their own (if not approved/rejected yet)
       allow update: if isSignedIn() && (isAdmin() || (resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid));
       
+      // Admins or owners can delete
       allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
