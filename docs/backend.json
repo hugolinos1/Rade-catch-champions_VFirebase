@@ -1,16 +1,15 @@
-
 {
   "entities": {
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a participant or administrator.",
+      "description": "Représente un participant ou un administrateur.",
       "properties": {
         "id": { "type": "string" },
         "name": { "type": "string" },
         "email": { "type": "string", "format": "email" },
-        "role": { "type": "string", "enum": ["participant", "admin"] },
+        "role": { "type": "string", "enum": ["user", "admin"] },
         "createdAt": { "type": "string", "format": "date-time" },
         "totalPoints": { "type": "number" },
         "catchesCount": { "type": "number" },
@@ -46,7 +45,8 @@
         "imageUrl": { "type": "string" },
         "date": { "type": "string" },
         "points": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "location": { "type": "string" }
       }
     }
   },

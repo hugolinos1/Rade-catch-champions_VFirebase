@@ -1,23 +1,25 @@
-// Last update: 2024-05-20T16:00:00Z - Global Read Access Fix
+// Last update: 2024-05-20T17:30:00Z - FORCED GLOBAL READ ACCESS
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // RÈGLE UNIVERSELLE DE LECTURE : On autorise la lecture publique sur TOUT
-    // C'est nécessaire pour le classement en temps réel et le guide
+    // RÈGLE ABSOLUE : Autorise la lecture publique sur TOUS les documents.
+    // Cela garantit que le classement, le guide et les flux de captures fonctionnent.
     match /{document=**} {
       allow read: if true;
-    }
-
-    // ÉCRITURE : Autorisée pour tous les utilisateurs connectés
-    // La validation se fait ensuite via l'interface Admin
-    match /{document=**} {
       allow write: if request.auth != null;
     }
     
-    // Exception pour les codes d'enregistrement : lecture publique aussi
-    match /registration_codes/{code} {
+    // Sécurité supplémentaire explicite pour les captures
+    match /catches/{catchId} {
       allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Sécurité supplémentaire explicite pour les utilisateurs
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null;
     }
   }
 }
