@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -23,9 +22,9 @@ export default function ConcoursPage() {
   const { user: currentUser } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Firestore Collections
+  // Firestore Collections - Only fetch if we have a user to avoid early permission errors
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
-  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const usersQuery = useMemoFirebase(() => currentUser ? collection(firestore, 'users') : null, [firestore, currentUser]);
   const recentCatchesQuery = useMemoFirebase(() => 
     query(collection(firestore, 'catches'), orderBy('timestamp', 'desc'), limit(10)), 
   [firestore]);
@@ -142,7 +141,7 @@ export default function ConcoursPage() {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full font-headline font-bold h-12" disabled={isSubmitting}>
+                  <Button type="submit" className="w-full font-headline font-bold h-12" disabled={isSubmitting || !currentUser}>
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Soumettre la capture"}
                   </Button>
                 </form>
@@ -153,7 +152,9 @@ export default function ConcoursPage() {
               <h2 className="font-headline text-2xl font-bold flex items-center gap-2">
                 <History className="h-6 w-6 text-primary" /> Dernières Prises
               </h2>
-              {loadingCatches ? <Loader2 className="animate-spin mx-auto" /> : (
+              {loadingCatches ? (
+                <div className="flex justify-center py-10"><Loader2 className="animate-spin h-8 w-8 text-slate-200" /></div>
+              ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
                   {recentCatches?.map((item) => (
                     <Card key={item.id} className="overflow-hidden border-none shadow flex h-32">
