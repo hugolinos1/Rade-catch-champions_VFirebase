@@ -19,14 +19,15 @@ import {
   XCircle, 
   RefreshCcw,
   Key,
-  Database
+  Database,
+  Loader2
 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { FishSpecies } from '@/lib/types';
+import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { FishSpecies, Catch, UserProfile, Contest } from '@/lib/types';
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -34,33 +35,36 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('contests');
   const [isSeeding, setIsSeeding] = useState(false);
 
+  // Queries
+  const contestsQuery = useMemoFirebase(() => collection(firestore, 'competitions'), [firestore]);
+  const catchesQuery = useMemoFirebase(() => collection(firestore, 'catches'), [firestore]);
+  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+
+  const { data: contests, isLoading: loadingContests } = useCollection<Contest>(contestsQuery);
+  const { data: catches, isLoading: loadingCatches } = useCollection<Catch>(catchesQuery);
+  const { data: users, isLoading: loadingUsers } = useCollection<UserProfile>(usersQuery);
+
   const handleSeedData = () => {
     setIsSeeding(true);
     
-    // Données de la Bonite basées sur l'image fournie
     const bonite: FishSpecies = {
       id: 'bonite',
       name: 'Bonite',
       scientificName: 'Sarda sarda',
-      description: 'La bonite à dos rayé est un scombridé pélagique proche du thon. Prédateur rapide et vorace, elle chasse en surface et forme parfois des chasses spectaculaires. Sa chair ferme et savoureuse en fait un poisson très recherché.',
-      imageUrl: 'https://firebasestorage.googleapis.com/v0/b/rade-catch-champions.firebasestorage.app/o/species%2F1773647822161_Bonite.jpg?alt=media&token=0b513251-9601-45c3-8ffb-0fea6839349f',
+      description: 'La bonite à dos rayé est un scombridé pélagique proche du thon. Prédateur rapide et vorace, elle chasse en surface et forme parfois des chasses spectaculaires.',
+      imageUrl: 'https://picsum.photos/seed/bonite/600/400',
       minSize: 25,
       maxSize: 91,
       averageSize: '30-50 cm',
-      pointsPerCm: 10, // Valeur par défaut
+      pointsPerCm: 10,
       rarity: 'Rare',
-      techniques: ['Traîne', 'Lancer', 'Jigging', 'Pêche au vif'],
-      spots: ['Large de la Chaussée', 'Plateau de Rochebonne', 'Ouessant'],
-      bonusPoints: [
-        { threshold: 35, points: 12 },
-        { threshold: 50, points: 20 },
-        { threshold: 70, points: 35 }
-      ],
+      techniques: ['Traîne', 'Lancer'],
+      spots: ['Rade Sud', 'Large'],
       habitat: 'Pélagique',
-      diet: 'Petits poissons, céphalopodes',
-      keyFeatures: 'Dos rayé, prédateur rapide',
-      fishingTips: 'Chercher les chasses en surface',
-      eligibilityCriteria: 'Taille légale > 25cm'
+      diet: 'Petits poissons',
+      keyFeatures: 'Dos rayé',
+      fishingTips: 'Chercher les chasses',
+      eligibilityCriteria: 'Taille > 25cm'
     };
 
     const docRef = doc(firestore, 'fish_species', bonite.id);
@@ -68,11 +72,14 @@ export default function AdminPage() {
 
     setTimeout(() => {
       setIsSeeding(false);
-      toast({
-        title: "Données importées",
-        description: "La fiche de la Bonite a été ajoutée au guide."
-      });
-    }, 1000);
+      toast({ title: "Données importées", description: "La fiche de la Bonite a été ajoutée." });
+    }, 800);
+  };
+
+  const handleUpdateStatus = (catchId: string, status: 'approved' | 'rejected') => {
+    const docRef = doc(firestore, 'catches', catchId);
+    updateDocumentNonBlocking(docRef, { status });
+    toast({ title: status === 'approved' ? "Prise validée" : "Prise refusée" });
   };
 
   return (
@@ -86,162 +93,127 @@ export default function AdminPage() {
               <Settings className="h-8 w-8 text-primary" />
               Administration
             </h1>
-            <p className="text-muted-foreground mt-1">Gérez les concours, les utilisateurs et le guide des poissons.</p>
+            <p className="text-muted-foreground mt-1">Gérez les concours, les utilisateurs et la modération.</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="font-headline" onClick={handleSeedData} disabled={isSeeding}>
-              <Database className="mr-2 h-4 w-4" /> {isSeeding ? "Import..." : "Importer Exemples"}
-            </Button>
-            <Button variant="outline" className="font-headline" onClick={() => toast({ title: "Rafraîchissement", description: "Données synchronisées." })}>
-              <RefreshCcw className="mr-2 h-4 w-4" /> Actualiser
+              <Database className="mr-2 h-4 w-4" /> {isSeeding ? "Import..." : "Importer Bonite"}
             </Button>
           </div>
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-white p-1 border shadow-sm w-full md:w-auto overflow-x-auto justify-start">
-            <TabsTrigger value="contests" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <FileText className="h-4 w-4 mr-2" /> Concours
-            </TabsTrigger>
-            <TabsTrigger value="catches" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Fish className="h-4 w-4 mr-2" /> Prises
-            </TabsTrigger>
-            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Users className="h-4 w-4 mr-2" /> Utilisateurs
-            </TabsTrigger>
+          <TabsList className="bg-white p-1 border shadow-sm">
+            <TabsTrigger value="contests">Concours</TabsTrigger>
+            <TabsTrigger value="catches">Prises</TabsTrigger>
+            <TabsTrigger value="users">Utilisateurs</TabsTrigger>
           </TabsList>
 
-          {/* Contests Management */}
           <TabsContent value="contests">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="font-headline">Gestion des Concours</CardTitle>
-                  <CardDescription>Configurez et activez les sessions de pêche.</CardDescription>
+                  <CardTitle className="font-headline">Sessions de Pêche</CardTitle>
                 </div>
                 <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nouveau</Button>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Titre</TableHead>
-                      <TableHead>Début</TableHead>
-                      <TableHead>Fin</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">Saison d'Automne 2024</TableCell>
-                      <TableCell>01/09/2024</TableCell>
-                      <TableCell>30/11/2024</TableCell>
-                      <TableCell><Badge className="bg-green-500">Actif</Badge></TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                        <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Catches Moderation */}
-          <TabsContent value="catches">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline">Modération des Prises</CardTitle>
-                <CardDescription>Validez ou rejetez les captures soumises par les utilisateurs.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Utilisateur</TableHead>
-                      <TableHead>Espèce</TableHead>
-                      <TableHead>Taille</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>Jean-Marc L.</TableCell>
-                      <TableCell>Bar Franc</TableCell>
-                      <TableCell>52 cm</TableCell>
-                      <TableCell>Aujourd'hui</TableCell>
-                      <TableCell><Badge variant="secondary">En attente</Badge></TableCell>
-                      <TableCell className="text-right space-x-2">
-                        <Button variant="outline" size="sm" className="text-green-600"><CheckCircle className="h-4 w-4 mr-1" /> Valider</Button>
-                        <Button variant="outline" size="sm" className="text-destructive"><XCircle className="h-4 w-4 mr-1" /> Refuser</Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* User Management */}
-          <TabsContent value="users">
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle className="font-headline">Utilisateurs</CardTitle>
-                  <CardDescription>Liste des membres inscrits.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                   <Table>
+                {loadingContests ? <Loader2 className="animate-spin mx-auto" /> : (
+                  <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nom</TableHead>
-                        <TableHead>Rôle</TableHead>
-                        <TableHead>Points</TableHead>
+                        <TableHead>Titre</TableHead>
+                        <TableHead>Statut</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell>Thierry L.</TableCell>
-                        <TableCell><Badge variant="outline">Admin</Badge></TableCell>
-                        <TableCell>12,450</TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
-                        </TableCell>
-                      </TableRow>
+                      {contests?.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell className="font-medium">{c.title}</TableCell>
+                          <TableCell><Badge className={c.isActive ? "bg-green-500" : ""}>{c.isActive ? "Actif" : "Inactif"}</Badge></TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      )) || <TableRow><TableCell colSpan={3} className="text-center italic">Aucun concours</TableCell></TableRow>}
                     </TableBody>
                   </Table>
-                </CardContent>
-              </Card>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-              <Card className="bg-primary/5 border-primary/20">
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2">
-                    <Key className="h-5 w-5 text-primary" />
-                    Invitations
-                  </CardTitle>
-                  <CardDescription>Générez des codes pour les nouveaux membres.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-white p-4 rounded-lg border text-center font-mono text-xl font-bold tracking-widest text-primary">
-                    RADE-2024-X9
-                  </div>
-                  <Button className="w-full font-headline">Générer un Code</Button>
-                  <div className="pt-4 space-y-2">
-                    <p className="text-xs font-bold uppercase text-muted-foreground">Derniers codes</p>
-                    <div className="text-xs flex justify-between items-center py-1 border-b">
-                      <span>CHAMP-8821</span>
-                      <Badge variant="outline" className="text-[10px]">Utilisé</Badge>
-                    </div>
-                    <div className="text-xs flex justify-between items-center py-1">
-                      <span>CATCH-4491</span>
-                      <Badge variant="secondary" className="text-[10px]">Libre</Badge>
-                    </div>
-                  </div>
+          <TabsContent value="catches">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Modération</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingCatches ? <Loader2 className="animate-spin mx-auto" /> : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pêcheur</TableHead>
+                        <TableHead>Espèce</TableHead>
+                        <TableHead>Taille</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {catches?.map((c) => (
+                        <TableRow key={c.id}>
+                          <TableCell>{c.userName}</TableCell>
+                          <TableCell>{c.fishName}</TableCell>
+                          <TableCell>{c.length} cm</TableCell>
+                          <TableCell>
+                            <Badge variant={c.status === 'approved' ? 'default' : c.status === 'rejected' ? 'destructive' : 'secondary'}>
+                              {c.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right space-x-2">
+                            {c.status === 'pending' && (
+                              <>
+                                <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(c.id, 'approved')}><CheckCircle className="h-4 w-4" /></Button>
+                                <Button variant="outline" size="sm" onClick={() => handleUpdateStatus(c.id, 'rejected')} className="text-destructive"><XCircle className="h-4 w-4" /></Button>
+                              </>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="md:col-span-2">
+                <CardHeader><CardTitle className="font-headline">Membres</CardTitle></CardHeader>
+                <CardContent>
+                  {loadingUsers ? <Loader2 className="animate-spin mx-auto" /> : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nom</TableHead>
+                          <TableHead>Points</TableHead>
+                          <TableHead className="text-right">Rôle</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users?.map((u) => (
+                          <TableRow key={u.id}>
+                            <TableCell>{u.name}</TableCell>
+                            <TableCell>{u.totalPoints}</TableCell>
+                            <TableCell className="text-right"><Badge variant="outline">{u.role}</Badge></TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
                 </CardContent>
               </Card>
             </div>
