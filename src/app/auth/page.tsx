@@ -9,11 +9,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, sendPasswordResetEmail } from 'firebase/auth';
 import { collection, query, where, getDocs, doc, setDoc, updateDoc } from 'firebase/firestore';
-import { Loader2, LogIn, UserPlus, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Loader2, LogIn, UserPlus, ShieldCheck, Eye, EyeOff, Mail } from 'lucide-react';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -22,6 +31,7 @@ export default function AuthPage() {
   const firestore = useFirestore();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isResetLoading, setIsResetLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -29,6 +39,8 @@ export default function AuthPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +108,33 @@ export default function AuthPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) {
+      toast({ variant: "destructive", title: "Email manquant", description: "Veuillez saisir votre adresse e-mail." });
+      return;
+    }
+
+    setIsResetLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, resetEmail);
+      toast({ 
+        title: "E-mail envoyé", 
+        description: "Un lien de réinitialisation a été envoyé à votre adresse e-mail." 
+      });
+      setIsResetDialogOpen(false);
+      setResetEmail('');
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur", 
+        description: "Impossible d'envoyer l'e-mail de réinitialisation. Vérifiez l'adresse saisie." 
+      });
+    } finally {
+      setIsResetLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       <Navigation />
@@ -130,7 +169,43 @@ export default function AuthPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password">Mot de passe</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="password">Mot de passe</Label>
+                      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+                        <DialogTrigger asChild>
+                          <button type="button" className="text-xs text-primary hover:underline font-medium">
+                            Mot de passe oublié ?
+                          </button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
+                            <DialogDescription>
+                              Saisissez votre e-mail pour recevoir un lien de réinitialisation.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="reset-email">Email</Label>
+                              <Input 
+                                id="reset-email" 
+                                type="email" 
+                                placeholder="votre@email.com" 
+                                value={resetEmail} 
+                                onChange={(e) => setResetEmail(e.target.value)} 
+                                required 
+                              />
+                            </div>
+                            <DialogFooter>
+                              <Button type="submit" disabled={isResetLoading} className="w-full sm:w-auto">
+                                {isResetLoading ? <Loader2 className="animate-spin mr-2" /> : <Mail className="mr-2 h-4 w-4" />}
+                                Envoyer le lien
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     <div className="relative">
                       <Input 
                         id="password" 
