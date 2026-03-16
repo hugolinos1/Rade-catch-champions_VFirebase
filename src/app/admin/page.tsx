@@ -37,7 +37,12 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Check,
+  X,
+  Fish,
+  MapPin,
+  Scale
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -45,9 +50,10 @@ import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useStora
 import { doc, collection, query, where, orderBy } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { UserProfile, InvitationCode, Contest } from '@/lib/types';
+import { UserProfile, InvitationCode, Contest, Catch, FishSpecies } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from 'next/image';
 
 export default function AdminPage() {
   const { toast } = useToast();
@@ -62,7 +68,9 @@ export default function AdminPage() {
   
   // State for modals
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
+  const [editingCatch, setEditingCatch] = useState<Catch | null>(null);
   const [isUserUpdating, setIsUserUpdating] = useState(false);
+  const [isCatchUpdating, setIsCatchUpdating] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isContestDialogOpen, setIsContestDialogOpen] = useState(false);
   
@@ -97,9 +105,19 @@ export default function AdminPage() {
     isAdmin ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, 
   [firestore, isAdmin]);
 
+  const catchesQuery = useMemoFirebase(() => 
+    isAdmin ? query(collection(firestore, 'catches'), orderBy('date', 'desc')) : null, 
+  [firestore, isAdmin]);
+
+  const speciesQuery = useMemoFirebase(() => 
+    collection(firestore, 'species'), 
+  [firestore]);
+
   const { data: users, isLoading: loadingUsers } = useCollection<UserProfile>(usersQuery);
   const { data: activeCodes, isLoading: loadingCodes } = useCollection<InvitationCode>(activeCodesQuery);
   const { data: competitions, isLoading: loadingCompetitions } = useCollection<Contest>(competitionsQuery);
+  const { data: catches, isLoading: loadingCatches } = useCollection<Catch>(catchesQuery);
+  const { data: species } = useCollection<FishSpecies>(speciesQuery);
 
   const handleGenerateCode = () => {
     if (!isAdmin) return;
@@ -193,6 +211,52 @@ export default function AdminPage() {
     const contestRef = doc(firestore, 'competitions', id);
     updateDocumentNonBlocking(contestRef, { status });
     toast({ title: "Statut mis à jour" });
+  };
+
+  // --- CATCH MANAGEMENT HANDLERS ---
+  const handleUpdateCatchStatus = (id: string, status: Catch['status']) => {
+    const catchRef = doc(firestore, 'catches', id);
+    updateDocumentNonBlocking(catchRef, { status });
+    toast({ 
+      title: status === 'approved' ? "Capture approuvée" : "Capture refusée",
+      variant: status === 'approved' ? "default" : "destructive"
+    });
+  };
+
+  const handleDeleteCatch = (id: string) => {
+    if (!confirm("Supprimer définitivement cette capture ?")) return;
+    const catchRef = doc(firestore, 'catches', id);
+    deleteDocumentNonBlocking(catchRef);
+    toast({ title: "Capture supprimée" });
+  };
+
+  const handleEditCatch = (c: Catch) => {
+    setEditingCatch({ ...c });
+  };
+
+  const handleSaveCatch = () => {
+    if (!editingCatch || !isAdmin) return;
+    setIsCatchUpdating(true);
+
+    // Recalculate points based on selected species and size
+    const fish = species?.find(s => s.id === editingCatch.fishId);
+    const updatedPoints = (fish?.pointsPerCm || 10) * editingCatch.size;
+
+    const catchRef = doc(firestore, 'catches', editingCatch.id);
+    updateDocumentNonBlocking(catchRef, {
+      fishId: editingCatch.fishId,
+      fishName: fish?.name || editingCatch.fishName,
+      size: editingCatch.size,
+      weight: editingCatch.weight,
+      location: editingCatch.location,
+      points: updatedPoints
+    });
+
+    setTimeout(() => {
+      setIsCatchUpdating(false);
+      setEditingCatch(null);
+      toast({ title: "Capture mise à jour" });
+    }, 500);
   };
 
   const tabs = [
@@ -529,6 +593,107 @@ export default function AdminPage() {
           </div>
         )}
 
+        {activeTab === 'captures' && (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-headline font-bold text-slate-900">Modération des Captures</h2>
+                <p className="text-slate-500">Approuvez ou rejetez les prises envoyées par les membres.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {loadingCatches ? (
+                <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-300 h-10 w-10" /></div>
+              ) : catches?.map((c) => (
+                <Card key={c.id} className="border-none shadow-sm bg-white overflow-hidden group">
+                  <div className="flex flex-col md:flex-row h-full">
+                    <div className="relative w-full md:w-64 h-48 md:h-auto shrink-0 bg-slate-100">
+                      <Image 
+                        src={c.imageUrl || 'https://picsum.photos/seed/catch/400/300'} 
+                        alt={c.fishName} 
+                        fill 
+                        className="object-cover"
+                      />
+                      <div className="absolute top-2 left-2">
+                        <Badge className={cn(
+                          "text-[10px] uppercase font-bold",
+                          c.status === 'approved' ? "bg-green-500" : c.status === 'pending' ? "bg-yellow-500" : "bg-red-500"
+                        )}>
+                          {c.status === 'approved' ? 'Approuvé' : c.status === 'pending' ? 'En attente' : 'Refusé'}
+                        </Badge>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 p-6 flex flex-col justify-between">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 text-slate-400 text-xs uppercase font-bold mb-1">
+                            <UserIcon className="h-3 w-3" /> Pêcheur
+                          </div>
+                          <p className="font-bold text-slate-900">{c.anglerName}</p>
+                          <p className="text-xs text-slate-500">{new Date(c.date).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 text-slate-400 text-xs uppercase font-bold mb-1">
+                            <Fish className="h-3 w-3" /> Espèce & Taille
+                          </div>
+                          <p className="font-bold text-primary">{c.fishName}</p>
+                          <p className="text-sm font-medium">{c.size} cm • {c.points} points</p>
+                        </div>
+                      </div>
+
+                      <div className="mt-6 flex flex-wrap gap-2 pt-4 border-t border-slate-50">
+                        {c.status !== 'approved' && (
+                          <Button 
+                            size="sm" 
+                            className="bg-green-600 hover:bg-green-700 font-bold gap-2"
+                            onClick={() => handleUpdateCatchStatus(c.id, 'approved')}
+                          >
+                            <Check className="h-4 w-4" /> Approuver
+                          </Button>
+                        )}
+                        {c.status !== 'rejected' && (
+                          <Button 
+                            variant="outline"
+                            size="sm" 
+                            className="text-red-500 hover:text-red-600 border-red-100 hover:bg-red-50 font-bold gap-2"
+                            onClick={() => handleUpdateCatchStatus(c.id, 'rejected')}
+                          >
+                            <X className="h-4 w-4" /> Refuser
+                          </Button>
+                        )}
+                        <Button 
+                          variant="secondary"
+                          size="sm" 
+                          className="font-bold gap-2"
+                          onClick={() => handleEditCatch(c)}
+                        >
+                          <Edit2 className="h-4 w-4" /> Modifier
+                        </Button>
+                        <Button 
+                          variant="ghost"
+                          size="sm" 
+                          className="text-slate-300 hover:text-destructive ml-auto"
+                          onClick={() => handleDeleteCatch(c.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+              {catches?.length === 0 && !loadingCatches && (
+                <div className="py-20 bg-white rounded-3xl border border-dashed text-center">
+                  <Camera className="h-12 w-12 text-slate-100 mx-auto mb-4" />
+                  <p className="text-slate-400">Aucune capture à modérer.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* MODAL EDIT USER */}
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent className="max-w-md">
@@ -585,7 +750,87 @@ export default function AdminPage() {
           </DialogContent>
         </Dialog>
 
-        {activeTab !== 'access' && activeTab !== 'competitions' && ( activeTab === 'guide' ? (
+        {/* MODAL EDIT CATCH */}
+        <Dialog open={!!editingCatch} onOpenChange={(open) => !open && setEditingCatch(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Modifier la Capture</DialogTitle>
+              <DialogDescription>Corrigez les détails techniques de la prise.</DialogDescription>
+            </DialogHeader>
+            {editingCatch && (
+              <div className="space-y-6 py-4">
+                <div className="relative h-40 w-full rounded-xl overflow-hidden mb-4">
+                   <Image src={editingCatch.imageUrl} alt="Fish" fill className="object-cover" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5 col-span-2">
+                    <Label>Espèce</Label>
+                    <Select 
+                      value={editingCatch.fishId} 
+                      onValueChange={(v) => setEditingCatch({ ...editingCatch, fishId: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {species?.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-1.5">
+                    <Label>Taille (cm)</Label>
+                    <div className="relative">
+                      <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input 
+                        type="number" 
+                        step="0.5" 
+                        className="pl-10"
+                        value={editingCatch.size}
+                        onChange={e => setEditingCatch({ ...editingCatch, size: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Poids (kg)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.1" 
+                      value={editingCatch.weight}
+                      onChange={e => setEditingCatch({ ...editingCatch, weight: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 col-span-2">
+                    <Label>Lieu</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input 
+                        className="pl-10"
+                        value={editingCatch.location}
+                        onChange={e => setEditingCatch({ ...editingCatch, location: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setEditingCatch(null)}>Annuler</Button>
+              <Button 
+                onClick={handleSaveCatch} 
+                disabled={isCatchUpdating}
+                className="bg-[#0a3d62] font-bold px-8"
+              >
+                {isCatchUpdating ? <Loader2 className="animate-spin mr-2" /> : "Enregistrer"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {activeTab !== 'access' && activeTab !== 'competitions' && activeTab !== 'captures' && ( activeTab === 'guide' ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
             <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
             <p className="text-slate-400 text-center px-4">Utilisez le module "Guide" dans la navigation pour gérer les poissons.</p>
