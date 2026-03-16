@@ -1,0 +1,290 @@
+
+"use client"
+
+import { Navigation } from '@/components/Navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { 
+  Settings, 
+  Users, 
+  Fish, 
+  FileText, 
+  Plus, 
+  Trash2, 
+  Edit, 
+  CheckCircle, 
+  XCircle, 
+  Sparkles,
+  RefreshCcw,
+  Key
+} from 'lucide-react';
+import { useState } from 'react';
+import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
+import { useToast } from '@/hooks/use-toast';
+
+export default function AdminPage() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('contests');
+  
+  // AI Generation State
+  const [fishName, setFishName] = useState('');
+  const [generatedDescription, setGeneratedDescription] = useState('');
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleGenerateAI = async () => {
+    if (!fishName) {
+      toast({ title: "Erreur", description: "Veuillez saisir un nom de poisson." });
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const result = await generateFishDescription({ fishName });
+      setGeneratedDescription(result.description);
+      toast({ title: "Description générée", description: "L'IA a rédigé une fiche détaillée." });
+    } catch (error) {
+      toast({ title: "Erreur AI", description: "Impossible de générer la description." });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-0">
+      <Navigation />
+      
+      <main className="container mx-auto px-4 py-8">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="font-headline text-4xl font-bold flex items-center gap-2">
+              <Settings className="h-8 w-8 text-primary" />
+              Administration
+            </h1>
+            <p className="text-muted-foreground mt-1">Gérez les concours, les utilisateurs et le guide des poissons.</p>
+          </div>
+          <Button variant="outline" className="font-headline" onClick={() => toast({ title: "Rafraîchissement", description: "Données synchronisées." })}>
+            <RefreshCcw className="mr-2 h-4 w-4" /> Actualiser
+          </Button>
+        </header>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="bg-white p-1 border shadow-sm w-full md:w-auto overflow-x-auto justify-start">
+            <TabsTrigger value="contests" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <FileText className="h-4 w-4 mr-2" /> Concours
+            </TabsTrigger>
+            <TabsTrigger value="catches" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Fish className="h-4 w-4 mr-2" /> Prises
+            </TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Users className="h-4 w-4 mr-2" /> Utilisateurs
+            </TabsTrigger>
+            <TabsTrigger value="guide" className="data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Sparkles className="h-4 w-4 mr-2" /> Guide IA
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Contests Management */}
+          <TabsContent value="contests">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="font-headline">Gestion des Concours</CardTitle>
+                  <CardDescription>Configurez et activez les sessions de pêche.</CardDescription>
+                </div>
+                <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Nouveau</Button>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Titre</TableHead>
+                      <TableHead>Début</TableHead>
+                      <TableHead>Fin</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">Saison d'Automne 2024</TableCell>
+                      <TableCell>01/09/2024</TableCell>
+                      <TableCell>30/11/2024</TableCell>
+                      <TableCell><Badge className="bg-green-500">Actif</Badge></TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Catches Moderation */}
+          <TabsContent value="catches">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline">Modération des Prises</CardTitle>
+                <CardDescription>Validez ou rejetez les captures soumises par les utilisateurs.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Utilisateur</TableHead>
+                      <TableHead>Espèce</TableHead>
+                      <TableHead>Taille</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>Jean-Marc L.</TableCell>
+                      <TableCell>Bar Franc</TableCell>
+                      <TableCell>52 cm</TableCell>
+                      <TableCell>Aujourd'hui</TableCell>
+                      <TableCell><Badge variant="secondary">En attente</Badge></TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <Button variant="outline" size="sm" className="text-green-600"><CheckCircle className="h-4 w-4 mr-1" /> Valider</Button>
+                        <Button variant="outline" size="sm" className="text-destructive"><XCircle className="h-4 w-4 mr-1" /> Refuser</Button>
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* User Management */}
+          <TabsContent value="users">
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="md:col-span-2">
+                <CardHeader>
+                  <CardTitle className="font-headline">Utilisateurs</CardTitle>
+                  <CardDescription>Liste des membres inscrits.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                   <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Rôle</TableHead>
+                        <TableHead>Points</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Thierry L.</TableCell>
+                        <TableCell><Badge variant="outline">Admin</Badge></TableCell>
+                        <TableCell>12,450</TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="font-headline flex items-center gap-2">
+                    <Key className="h-5 w-5 text-primary" />
+                    Invitations
+                  </CardTitle>
+                  <CardDescription>Générez des codes pour les nouveaux membres.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border text-center font-mono text-xl font-bold tracking-widest text-primary">
+                    RADE-2024-X9
+                  </div>
+                  <Button className="w-full font-headline">Générer un Code</Button>
+                  <div className="pt-4 space-y-2">
+                    <p className="text-xs font-bold uppercase text-muted-foreground">Derniers codes</p>
+                    <div className="text-xs flex justify-between items-center py-1 border-b">
+                      <span>CHAMP-8821</span>
+                      <Badge variant="outline" className="text-[10px]">Utilisé</Badge>
+                    </div>
+                    <div className="text-xs flex justify-between items-center py-1">
+                      <span>CATCH-4491</span>
+                      <Badge variant="secondary" className="text-[10px]">Libre</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* Fish Guide IA */}
+          <TabsContent value="guide">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-headline flex items-center gap-2">
+                  <Sparkles className="h-6 w-6 text-primary" />
+                  Assistant IA : Fiches Poissons
+                </CardTitle>
+                <CardDescription>Utilisez l'intelligence artificielle pour rédiger des descriptions captivantes pour le guide.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fish-ai-name">Nom du poisson</Label>
+                      <Input 
+                        id="fish-ai-name" 
+                        placeholder="Ex: Pagre Commun" 
+                        value={fishName}
+                        onChange={(e) => setFishName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fish-details">Informations supplémentaires (Optionnel)</Label>
+                      <Textarea placeholder="Indiquez l'habitat, les points..." />
+                    </div>
+                    <Button 
+                      className="w-full font-headline font-bold" 
+                      onClick={handleGenerateAI}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? "Génération en cours..." : "Générer la description"}
+                    </Button>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Résultat Généré</Label>
+                    <div className="min-h-[250px] p-4 rounded-lg bg-muted/30 border-2 border-dashed flex flex-col">
+                      {generatedDescription ? (
+                        <>
+                          <div className="flex-1 text-sm font-body leading-relaxed">
+                            {generatedDescription}
+                          </div>
+                          <Button variant="outline" size="sm" className="mt-4 self-end">
+                            Utiliser cette fiche
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground italic text-sm text-center">
+                          <Sparkles className="h-8 w-8 mb-2 opacity-20" />
+                          Le contenu généré s'affichera ici.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </main>
+    </div>
+  );
+}

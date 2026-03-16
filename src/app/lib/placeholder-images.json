@@ -1,0 +1,35 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "bass",
+      "description": "A largemouth bass fish in water",
+      "imageUrl": "https://picsum.photos/seed/bass/600/400",
+      "imageHint": "bass fish"
+    },
+    {
+      "id": "pike",
+      "description": "A northern pike fish",
+      "imageUrl": "https://picsum.photos/seed/pike/600/400",
+      "imageHint": "pike fish"
+    },
+    {
+      "id": "perch",
+      "description": "A yellow perch fish",
+      "imageUrl": "https://picsum.photos/seed/perch/600/400",
+      "imageHint": "perch fish"
+    },
+    {
+      "id": "trout",
+      "description": "A rainbow trout fish",
+      "imageUrl": "https://picsum.photos/seed/trout/600/400",
+      "imageHint": "trout fish"
+    },
+    {
+      "id": "carp",
+      "description": "A common carp fish",
+      "imageUrl": "https://picsum.photos/seed/carp/600/400",
+      "imageHint": "carp fish"
+    }
+  ]
+}
