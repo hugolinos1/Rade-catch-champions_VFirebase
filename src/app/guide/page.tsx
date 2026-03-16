@@ -3,58 +3,86 @@
 
 import { Navigation } from '@/components/Navigation';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Info, Scale, Waves } from 'lucide-react';
+import { Search, MapPin, Ruler, Target } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FishSpecies } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const MOCK_FISH: FishSpecies[] = [
   {
     id: '1',
-    name: 'Bar Franc',
-    scientificName: 'Dicentrarchus labrax',
-    pointsPerCm: 10,
-    minSize: 42,
-    description: 'Le Bar Franc est le poisson roi de la Rade. Puissant et combatif, il demande une technique affûtée.',
-    imageUrl: 'https://picsum.photos/seed/bass/600/400',
-    habitat: 'Zones rocheuses, courants forts',
-    diet: 'Petits poissons, crustacés',
-    averageSize: '40-70cm',
-    keyFeatures: 'Corps argenté, dos sombre, opercule avec épine',
-    fishingTips: 'Leurre de surface au lever du soleil',
-    eligibilityCriteria: 'Minimum 42cm pour être comptabilisé'
+    name: 'Anguille',
+    scientificName: 'Anguilla anguilla',
+    rarity: 'Très rare',
+    pointsPerCm: 12,
+    minSize: 37,
+    maxSize: 150,
+    averageSize: '40-80 cm',
+    description: 'L\'anguille européenne est un poisson migrateur au corps serpentiforme.',
+    imageUrl: 'https://picsum.photos/seed/eel/600/400',
+    habitat: 'Estuaires, rivières, zones vaseuses',
+    diet: 'Petits crustacés, vers, poissons',
+    techniques: ['Pêche de nuit', 'Pêche au posé'],
+    spots: ['Estuaires', 'Aulne'],
+    bonusPoints: [
+      { threshold: 40, points: 15 },
+      { threshold: 60, points: 25 },
+      { threshold: 80, points: 40 }
+    ],
+    keyFeatures: 'Corps allongé, peau visqueuse',
+    fishingTips: 'Utilisez des vers de terreau ou de petits poissons morts.',
+    eligibilityCriteria: 'Minimum 37cm'
   },
   {
     id: '2',
-    name: 'Dorade Royale',
-    scientificName: 'Sparus aurata',
-    pointsPerCm: 15,
-    minSize: 30,
-    description: 'Reconnaissable à son bandeau doré entre les yeux, c\'est un poisson noble et méfiant.',
-    imageUrl: 'https://picsum.photos/seed/bream/600/400',
-    habitat: 'Fonds sableux et herbiers',
-    diet: 'Mollusques, vers',
-    averageSize: '30-50cm',
-    keyFeatures: 'Bandeau doré, tache noire sur l\'opercule',
-    fishingTips: 'Appâts naturels (vers, bibi)',
-    eligibilityCriteria: 'Minimum 30cm'
+    name: 'Bar Franc',
+    scientificName: 'Dicentrarchus labrax',
+    rarity: 'Commun',
+    pointsPerCm: 10,
+    minSize: 42,
+    maxSize: 100,
+    averageSize: '40-70 cm',
+    description: 'Le Bar Franc est le poisson roi de la Rade. Puissant et combatif.',
+    imageUrl: 'https://picsum.photos/seed/bass/600/400',
+    habitat: 'Zones rocheuses, courants forts',
+    diet: 'Petits poissons, crustacés',
+    techniques: ['Leurre de surface', 'Poisson nageur'],
+    spots: ['Pointe du Diable', 'Le Caro'],
+    bonusPoints: [
+      { threshold: 50, points: 10 },
+      { threshold: 70, points: 30 },
+      { threshold: 90, points: 60 }
+    ],
+    keyFeatures: 'Dos gris bleuté, opercule avec épine',
+    fishingTips: 'Pêchez dans l\'écume près des rochers.',
+    eligibilityCriteria: 'Minimum 42cm'
   },
   {
     id: '3',
-    name: 'Lieu Jaune',
-    scientificName: 'Pollachius pollachius',
-    pointsPerCm: 8,
-    minSize: 35,
-    description: 'Poisson vorace vivant souvent près des structures et des épaves.',
-    imageUrl: 'https://picsum.photos/seed/pollock/600/400',
-    habitat: 'Profondeurs, épaves, tombants',
-    diet: 'Lançons, sprats',
-    averageSize: '35-60cm',
-    keyFeatures: 'Ligne latérale sombre, mâchoire inférieure saillante',
-    fishingTips: 'Jigging ou leurre souple en profondeur',
-    eligibilityCriteria: 'Minimum 35cm'
+    name: 'Dorade Royale',
+    scientificName: 'Sparus aurata',
+    rarity: 'Rare',
+    pointsPerCm: 15,
+    minSize: 30,
+    maxSize: 70,
+    averageSize: '30-50 cm',
+    description: 'Reconnaissable à son bandeau doré entre les yeux.',
+    imageUrl: 'https://picsum.photos/seed/bream/600/400',
+    habitat: 'Fonds sableux, herbiers',
+    diet: 'Mollusques, vers',
+    techniques: ['Bibi', 'Vers marins'],
+    spots: ['Anse du Poulmic', 'Plougastel'],
+    bonusPoints: [
+      { threshold: 40, points: 20 },
+      { threshold: 50, points: 40 },
+      { threshold: 60, points: 80 }
+    ],
+    keyFeatures: 'Bandeau doré, tache noire operculaire',
+    fishingTips: 'Appâts frais essentiels, poisson très méfiant.',
+    eligibilityCriteria: 'Minimum 30cm'
   }
 ];
 
@@ -67,21 +95,21 @@ export default function GuidePage() {
   );
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen bg-slate-50 pb-20 md:pb-0">
       <Navigation />
       
       <main className="container mx-auto px-4 py-8">
         <header className="mb-12 text-center md:text-left">
-          <h1 className="font-headline text-4xl font-bold mb-4">Guide des Poissons</h1>
+          <h1 className="font-headline text-4xl font-bold mb-4 text-slate-900">Guide des Poissons</h1>
           <p className="text-muted-foreground text-lg mb-8 max-w-2xl">
-            Découvrez toutes les espèces éligibles au concours Rade Catch Champions. Apprenez-en plus sur leur habitat et optimisez vos points.
+            Fiches détaillées des espèces de la Rade de Brest pour optimiser vos points.
           </p>
           
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Rechercher un poisson..." 
-              className="pl-10"
+              className="pl-10 bg-white border-slate-200"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -90,57 +118,90 @@ export default function GuidePage() {
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredFish.map((fish) => (
-            <Card key={fish.id} className="overflow-hidden group border-none shadow-md hover:shadow-xl transition-all duration-300">
-              <div className="relative h-48 w-full">
-                <Image 
-                  src={fish.imageUrl} 
-                  alt={fish.name} 
-                  fill 
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                  data-ai-hint="fish species photo"
-                />
-                <div className="absolute top-2 right-2 flex flex-col gap-2">
-                  <Badge variant="secondary" className="bg-white/90 backdrop-blur shadow-sm font-headline">
-                    {fish.pointsPerCm} pts/cm
-                  </Badge>
-                  <Badge variant="outline" className="bg-primary/90 text-white border-none shadow-sm font-headline">
-                    Min {fish.minSize} cm
-                  </Badge>
-                </div>
-              </div>
-              
-              <CardHeader>
+            <Card key={fish.id} className="overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl">
+              <CardHeader className="pb-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <CardTitle className="font-headline text-2xl mb-1">{fish.name}</CardTitle>
-                    <p className="text-sm italic text-muted-foreground">{fish.scientificName}</p>
+                    <CardTitle className="font-headline text-2xl font-bold text-slate-900">{fish.name}</CardTitle>
+                    <p className="text-sm italic text-slate-400 font-medium">{fish.scientificName}</p>
                   </div>
+                  {fish.rarity && (
+                    <Badge className={cn(
+                      "rounded-full px-3 py-1 text-[10px] font-bold tracking-wider uppercase",
+                      fish.rarity === 'Très rare' ? "bg-cyan-900 hover:bg-cyan-950 text-white" : 
+                      fish.rarity === 'Rare' ? "bg-amber-500 hover:bg-amber-600 text-white" : 
+                      "bg-slate-200 hover:bg-slate-300 text-slate-700"
+                    )}>
+                      {fish.rarity}
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               
-              <CardContent className="space-y-4">
-                <p className="text-sm line-clamp-3 text-muted-foreground font-body leading-relaxed">
-                  {fish.description}
-                </p>
+              <CardContent className="space-y-6">
+                <div className="relative h-44 w-full rounded-2xl overflow-hidden bg-slate-100">
+                  <Image 
+                    src={fish.imageUrl} 
+                    alt={fish.name} 
+                    fill 
+                    className="object-cover"
+                    data-ai-hint="fish photo"
+                  />
+                </div>
                 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                  <div className="flex items-center gap-2 text-xs">
-                    <Waves className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{fish.habitat}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Ruler className="h-4 w-4 text-orange-400" />
+                      <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-600">
+                      <Target className="h-4 w-4 text-orange-400" />
+                      <span className="text-sm font-semibold">Moy: {fish.averageSize}</span>
+                    </div>
+                    {fish.maxSize && (
+                      <div className="text-xs text-slate-400 pl-6 font-medium">
+                        Max: {fish.maxSize} cm
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <Scale className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{fish.averageSize}</span>
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">Techniques:</p>
+                    <div className="flex flex-col gap-1.5">
+                      {fish.techniques?.map((tech, i) => (
+                        <div key={i} className="bg-cyan-50 text-cyan-700 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-cyan-100/50">
+                          {tech}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-slate-800 font-bold uppercase text-xs">
+                    <MapPin className="h-4 w-4 text-orange-400" />
+                    Spots:
+                  </div>
+                  <p className="text-xs text-slate-500 font-medium pl-6">
+                    {fish.spots?.join(', ') || 'Non renseigné'}
+                  </p>
+                </div>
+
+                {fish.bonusPoints && (
+                  <div className="bg-cyan-50/50 rounded-2xl p-4 space-y-3 border border-cyan-100/30">
+                    <p className="text-sm font-bold text-cyan-900 tracking-tight">Points Bonus:</p>
+                    <div className="space-y-2">
+                      {fish.bonusPoints.map((bonus, i) => (
+                        <div key={i} className="flex justify-between items-center text-xs font-bold">
+                          <span className="text-slate-500">+ {bonus.threshold} cm:</span>
+                          <span className="text-orange-500">{bonus.points} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
-              
-              <CardFooter className="bg-accent/5 p-4 flex justify-between items-center">
-                 <div className="flex items-center gap-1 text-primary text-xs font-bold uppercase tracking-wider">
-                   <Info className="h-3 w-3" />
-                   Astuces : {fish.fishingTips}
-                 </div>
-              </CardFooter>
             </Card>
           ))}
         </div>

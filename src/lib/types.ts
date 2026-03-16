@@ -1,10 +1,16 @@
 
+export type BonusPointThreshold = {
+  threshold: number;
+  points: number;
+};
+
 export type FishSpecies = {
   id: string;
   name: string;
   scientificName: string;
   pointsPerCm: number;
   minSize: number;
+  maxSize?: number;
   description: string;
   imageUrl: string;
   habitat: string;
@@ -13,6 +19,10 @@ export type FishSpecies = {
   keyFeatures: string;
   fishingTips: string;
   eligibilityCriteria: string;
+  rarity?: 'Commun' | 'Rare' | 'Très rare';
+  techniques?: string[];
+  spots?: string[];
+  bonusPoints?: BonusPointThreshold[];
 };
 
 export type Catch = {
