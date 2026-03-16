@@ -41,14 +41,17 @@ service cloud.firestore {
     }
 
     match /catches/{catchId} {
-      allow read: if true;
+      // Autorise explicitement get et list pour le classement et le flux d'activité
+      allow get, list: if true;
       allow create: if isSignedIn();
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
     match /registration_codes/{codeId} {
-      // Lecture autorisée pour vérification lors de l'inscription
-      allow read: if isSignedIn();
+      // Lecture individuelle autorisée pour vérification lors de l'inscription
+      // Le listage (query) est réservé aux admins via la logique de l'application
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
       allow write: if isAdmin();
     }
   }
