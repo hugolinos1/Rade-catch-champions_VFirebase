@@ -1,14 +1,10 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    // Dossier spécifique pour les espèces
-    // Pour le prototype, on autorise tout le monde à lire et écrire dans /species
-    // Cela permet de s'affranchir des problèmes d'authentification pendant les tests
     match /species/{allPaths=**} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if true;
     }
-    
-    // Règle par défaut pour le reste du stockage (nécessite d'être connecté)
     match /{allPaths=**} {
       allow read: if true;
       allow write: if request.auth != null;

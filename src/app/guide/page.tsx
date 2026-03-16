@@ -122,6 +122,7 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
+    // Ajout d'un timeout de sécurité
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('TIMEOUT')), 30000)
     );
@@ -447,7 +448,7 @@ export default function GuidePage() {
             <DialogHeader>
               <DialogTitle>Importation par IA</DialogTitle>
               <DialogDescription>
-                Collez n'importe quel texte contenant des informations sur un poisson pour que l'IA remplisse la fiche.
+                Collez n'importe quel texte contenant des informations sur un poisson pour que l'IA remplisse la fiche automatiquement.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -476,7 +477,7 @@ export default function GuidePage() {
                   {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
                 </DialogTitle>
                 <DialogDescription>
-                  Gérez les détails, l'image et les points de l'espèce sélectionnée.
+                  Configurez les caractéristiques, les points et l'illustration de l'espèce.
                 </DialogDescription>
               </div>
               <Button 
