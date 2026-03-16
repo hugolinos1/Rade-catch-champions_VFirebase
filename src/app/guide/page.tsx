@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef, useMemo } from 'react';
-import { FishSpecies } from '@/lib/types';
+import { FishSpecies, BonusPointThreshold } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { parseFishData } from '@/ai/flows/parse-fish-data-flow';
@@ -81,12 +81,10 @@ export default function GuidePage() {
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const { data: rawFishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
 
-  // Normalisation des données pour gérer les différents schémas Firestore
   const fishList = useMemo(() => {
     if (!rawFishList) return [];
     return rawFishList.map(fish => ({
       ...fish,
-      // On mappe les champs Firestore vers notre type local FishSpecies
       imageUrl: fish.image || fish.imageUrl || '',
       minSize: fish.legalSize || fish.minSize || 0,
       bonusPoints: (fish.pointsSystem || fish.bonusPoints || []).map(p => ({
@@ -133,7 +131,6 @@ export default function GuidePage() {
     if (!editingFish) return;
     
     const docId = editingFish.id || doc(collection(firestore, 'species')).id;
-    // On sauvegarde en respectant le schéma attendu par la base (legalSize, image, pointsSystem)
     const finalFishData = { 
       ...editingFish, 
       id: docId,
@@ -210,6 +207,52 @@ export default function GuidePage() {
       case 'Rare': return 'bg-orange-500 text-white hover:bg-orange-500';
       default: return 'bg-slate-400 text-white hover:bg-slate-400';
     }
+  };
+
+  // Helpers for list management in editing form
+  const addTechnique = () => {
+    if (!editingFish) return;
+    setEditingFish({ ...editingFish, techniques: [...(editingFish.techniques || []), ""] });
+  };
+  const updateTechnique = (index: number, value: string) => {
+    if (!editingFish) return;
+    const newTechs = [...(editingFish.techniques || [])];
+    newTechs[index] = value;
+    setEditingFish({ ...editingFish, techniques: newTechs });
+  };
+  const removeTechnique = (index: number) => {
+    if (!editingFish) return;
+    setEditingFish({ ...editingFish, techniques: editingFish.techniques?.filter((_, i) => i !== index) });
+  };
+
+  const addSpot = () => {
+    if (!editingFish) return;
+    setEditingFish({ ...editingFish, spots: [...(editingFish.spots || []), ""] });
+  };
+  const updateSpot = (index: number, value: string) => {
+    if (!editingFish) return;
+    const newSpots = [...(editingFish.spots || [])];
+    newSpots[index] = value;
+    setEditingFish({ ...editingFish, spots: newSpots });
+  };
+  const removeSpot = (index: number) => {
+    if (!editingFish) return;
+    setEditingFish({ ...editingFish, spots: editingFish.spots?.filter((_, i) => i !== index) });
+  };
+
+  const addPalier = () => {
+    if (!editingFish) return;
+    setEditingFish({ ...editingFish, bonusPoints: [...(editingFish.bonusPoints || []), { threshold: 0, points: 0 }] });
+  };
+  const updatePalier = (index: number, field: keyof BonusPointThreshold, value: number) => {
+    if (!editingFish) return;
+    const newBonus = [...(editingFish.bonusPoints || [])];
+    newBonus[index] = { ...newBonus[index], [field]: value };
+    setEditingFish({ ...editingFish, bonusPoints: newBonus });
+  };
+  const removePalier = (index: number) => {
+    if (!editingFish) return;
+    setEditingFish({ ...editingFish, bonusPoints: editingFish.bonusPoints?.filter((_, i) => i !== index) });
   };
 
   return (
@@ -294,7 +337,6 @@ export default function GuidePage() {
                       <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
                     </div>
 
-                    {/* Affichage des points Bonus sur la vignette */}
                     {fish.bonusPoints && fish.bonusPoints.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {fish.bonusPoints.slice(0, 2).map((bp, idx) => (
@@ -414,41 +456,37 @@ export default function GuidePage() {
           </DialogContent>
         </Dialog>
 
-        {/* DIALOG EDIT */}
+        {/* DIALOG EDIT (MODIFIED TO MATCH MOCKUP) */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingFish?.id ? "Modifier l'espèce" : "Nouvelle espèce"}</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-slate-800">
+                {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
+              </DialogTitle>
               <DialogDescription>
-                Formulaire permettant de mettre à jour les informations de l'espèce sélectionnée.
+                Renseignez les informations détaillées de l'espèce.
               </DialogDescription>
             </DialogHeader>
             {editingFish && (
               <div className="space-y-6 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nom</Label>
-                    <Input value={editingFish.name} onChange={e => setEditingFish({...editingFish, name: e.target.value})} />
+                <div className="grid grid-cols-2 gap-x-4 gap-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Nom Commun</Label>
+                    <Input className="bg-slate-50 border-slate-200" value={editingFish.name} onChange={e => setEditingFish({...editingFish, name: e.target.value})} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Nom Scientifique</Label>
-                    <Input value={editingFish.scientificName} onChange={e => setEditingFish({...editingFish, scientificName: e.target.value})} />
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Nom Scientifique</Label>
+                    <Input className="bg-slate-50 border-slate-200" placeholder="Anguilla anguilla" value={editingFish.scientificName} onChange={e => setEditingFish({...editingFish, scientificName: e.target.value})} />
                   </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label>Maille (cm)</Label>
-                    <Input type="number" value={editingFish.minSize} onChange={e => setEditingFish({...editingFish, minSize: parseInt(e.target.value) || 0})} />
+                  
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Taille Légale (cm)</Label>
+                    <Input className="bg-slate-50 border-slate-200" type="number" value={editingFish.minSize} onChange={e => setEditingFish({...editingFish, minSize: parseInt(e.target.value) || 0})} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Taille Max (cm)</Label>
-                    <Input type="number" value={editingFish.maxSize} onChange={e => setEditingFish({...editingFish, maxSize: parseInt(e.target.value) || 0})} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Rareté</Label>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Rareté</Label>
                     <Select value={editingFish.rarity} onValueChange={(v: any) => setEditingFish({...editingFish, rarity: v})}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="bg-slate-50 border-slate-200"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Commun">Commun</SelectItem>
                         <SelectItem value="Rare">Rare</SelectItem>
@@ -456,46 +494,102 @@ export default function GuidePage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Taille Moyenne (ex: 15-30cm)</Label>
+                    <Input className="bg-slate-50 border-slate-200" value={editingFish.averageSize} onChange={e => setEditingFish({...editingFish, averageSize: e.target.value})} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Taille Max (cm)</Label>
+                    <Input className="bg-slate-50 border-slate-200" type="number" value={editingFish.maxSize} onChange={e => setEditingFish({...editingFish, maxSize: parseInt(e.target.value) || 0})} />
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Techniques (séparées par des virgules)</Label>
-                  <Input 
-                    value={editingFish.techniques?.join(', ')} 
-                    onChange={e => setEditingFish({...editingFish, techniques: e.target.value.split(',').map(s => s.trim()).filter(s => s)})} 
-                  />
+                <div className="space-y-1.5">
+                  <Label className="text-slate-600 font-bold">Description</Label>
+                  <Textarea className="bg-slate-50 border-slate-200 min-h-[100px]" value={editingFish.description} onChange={e => setEditingFish({...editingFish, description: e.target.value})} />
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Spots (séparés par des virgules)</Label>
-                  <Input 
-                    value={editingFish.spots?.join(', ')} 
-                    onChange={e => setEditingFish({...editingFish, spots: e.target.value.split(',').map(s => s.trim()).filter(s => s)})} 
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Photo</Label>
-                    <div className="flex gap-2">
-                      <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-                      <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                        {isUploading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />} Upload
+                <div className="grid grid-cols-2 gap-6">
+                  {/* Techniques Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-slate-600 font-bold">Techniques</Label>
+                      <Button variant="outline" size="sm" onClick={addTechnique} className="h-7 text-xs bg-slate-50">
+                        <Plus className="h-3 w-3 mr-1" /> Ajouter
                       </Button>
                     </div>
+                    <div className="space-y-2">
+                      {editingFish.techniques?.map((tech, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <Input className="bg-slate-50 border-slate-200 h-9" value={tech} onChange={(e) => updateTechnique(idx, e.target.value)} />
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removeTechnique(idx)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  <Input value={editingFish.imageUrl} onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})} placeholder="URL de l'image" />
+
+                  {/* Spots Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-slate-600 font-bold">Spots (Crozon / Rade)</Label>
+                      <Button variant="outline" size="sm" onClick={addSpot} className="h-7 text-xs bg-slate-50">
+                        <Plus className="h-3 w-3 mr-1" /> Ajouter
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {editingFish.spots?.map((spot, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <Input className="bg-slate-50 border-slate-200 h-9" value={spot} onChange={(e) => updateSpot(idx, e.target.value)} />
+                          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removeSpot(idx)}><Trash2 className="h-4 w-4" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea className="min-h-[150px]" value={editingFish.description} onChange={e => setEditingFish({...editingFish, description: e.target.value})} />
+                {/* Système de Points Section */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-slate-600 font-bold">Système de Points</Label>
+                    <Button variant="outline" size="sm" onClick={addPalier} className="h-7 text-xs bg-slate-50">
+                      <Plus className="h-3 w-3 mr-1" /> Palier
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {editingFish.bonusPoints?.map((bp, idx) => (
+                      <div key={idx} className="flex gap-3 items-center">
+                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" value={bp.threshold} onChange={(e) => updatePalier(idx, 'threshold', parseInt(e.target.value) || 0)} />
+                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" value={bp.points} onChange={(e) => updatePalier(idx, 'points', parseInt(e.target.value) || 0)} />
+                        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removePalier(idx)}><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Photo de l'espèce Section */}
+                <div className="space-y-2 pt-4">
+                  <Label className="text-slate-600 font-bold">Photo de l'espèce</Label>
+                  <div className="flex items-center gap-3">
+                    {editingFish.imageUrl && (
+                      <div className="relative h-10 w-10 rounded border overflow-hidden shrink-0">
+                        <Image src={editingFish.imageUrl} alt="preview" fill className="object-cover" />
+                      </div>
+                    )}
+                    <div className="flex-1 flex gap-2">
+                       <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                       <Button variant="outline" className="w-full bg-white border-slate-200 text-slate-500 justify-start font-normal h-10" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                         {isUploading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
+                         Choisir un fichier <span className="ml-2 text-slate-400">Aucun fichier choisi</span>
+                       </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-              <Button onClick={handleSaveFish}>Enregistrer</Button>
+            <DialogFooter className="gap-2 sm:gap-0 pt-4">
+              <Button variant="ghost" className="text-slate-600" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
+              <Button className="bg-[#0f3450] hover:bg-[#0f3450]/90 text-white font-bold px-8" onClick={handleSaveFish}>Sauvegarder</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -510,6 +604,7 @@ export default function GuidePage() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
+              <span className="text-sm text-slate-500 mb-2 block">Collez un texte descriptif pour extraire automatiquement les données de l'espèce.</span>
               <Textarea placeholder="Ex: L'anguille mesure entre 40 et 80cm..." className="min-h-[200px]" value={rawText} onChange={(e) => setRawText(e.target.value)} />
             </div>
             <DialogFooter>
