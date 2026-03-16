@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -8,13 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Camera, Send, History, Trophy, Fish, Scale, Users, Anchor, Loader2 } from 'lucide-react';
+import { Send, History, Scale, Anchor, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { Catch, UserProfile, FishSpecies } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, doc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ConcoursPage() {
@@ -26,7 +25,9 @@ export default function ConcoursPage() {
   // Firestore Collections
   const fishQuery = useMemoFirebase(() => collection(firestore, 'fish_species'), [firestore]);
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
-  const recentCatchesQuery = useMemoFirebase(() => collection(firestore, 'catches'), [firestore]);
+  const recentCatchesQuery = useMemoFirebase(() => 
+    query(collection(firestore, 'catches'), orderBy('timestamp', 'desc'), limit(10)), 
+  [firestore]);
 
   const { data: species } = useCollection<FishSpecies>(fishQuery);
   const { data: allUsers } = useCollection<UserProfile>(usersQuery);
@@ -49,7 +50,7 @@ export default function ConcoursPage() {
 
     const newCatch: Partial<Catch> = {
       userId: selectedFisherman,
-      userName: fisher?.name || 'Inconnu',
+      userName: fisher?.name || (selectedFisherman === currentUser?.uid ? 'Moi' : 'Anonyme'),
       fishId: selectedFishId,
       fishName: fish?.name || 'Inconnu',
       length: parseFloat(length),
@@ -104,8 +105,9 @@ export default function ConcoursPage() {
                           <SelectValue placeholder="Choisir le pêcheur" />
                         </SelectTrigger>
                         <SelectContent>
-                          {allUsers?.map(u => (
-                            <SelectItem key={u.id} value={u.id}>{u.name} {u.id === currentUser?.uid ? "(Moi)" : ""}</SelectItem>
+                          <SelectItem value={currentUser?.uid || 'me'}>Moi-même</SelectItem>
+                          {allUsers?.filter(u => u.id !== currentUser?.uid).map(u => (
+                            <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -152,10 +154,10 @@ export default function ConcoursPage() {
               </h2>
               {loadingCatches ? <Loader2 className="animate-spin mx-auto" /> : (
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {recentCatches?.slice(0, 4).map((item) => (
+                  {recentCatches?.map((item) => (
                     <Card key={item.id} className="overflow-hidden border-none shadow flex h-32">
                       <div className="relative w-32 h-full">
-                        <Image src={item.photoUrl} alt={item.fishName} fill className="object-cover" />
+                        <Image src={item.photoUrl || 'https://picsum.photos/seed/catch/400/300'} alt={item.fishName} fill className="object-cover" />
                       </div>
                       <div className="flex-1 p-4 flex flex-col justify-between">
                         <div>
@@ -169,6 +171,9 @@ export default function ConcoursPage() {
                       </div>
                     </Card>
                   ))}
+                  {recentCatches?.length === 0 && (
+                    <p className="text-muted-foreground italic col-span-2 text-center py-8">Aucune capture récente.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -178,7 +183,7 @@ export default function ConcoursPage() {
             <Card className="border-none shadow">
               <CardHeader><CardTitle className="font-headline text-lg">Rappel des Points</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
-                {species?.slice(0, 5).map(s => (
+                {species?.slice(0, 10).map(s => (
                   <div key={s.id} className="flex justify-between border-b pb-1">
                     <span>{s.name}</span>
                     <span className="font-bold">{s.pointsPerCm} pts/cm</span>

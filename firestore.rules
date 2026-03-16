@@ -7,8 +7,9 @@ service cloud.firestore {
      * 
      * Strategy:
      * - Public: Read-only access to fish guide and active competitions.
-     * - Authenticated: Can submit catches, manage their own profile, and manage fish species (prototyping).
-     * - Admin: Full control over all collections (verified via /roles_admin).
+     * - Authenticated: Can submit catches, manage their own profile.
+     * - Prototype Mode: Relaxed read permissions for catches to simplify list views.
+     * - Admin: Verified via /roles_admin collection.
      */
 
     // --- GLOBAL HELPER FUNCTIONS ---
@@ -36,23 +37,22 @@ service cloud.firestore {
 
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
-      allow write: if false; // Managed via console for security
+      allow write: if false; 
     }
 
     match /fish_species/{speciesId} {
-      allow get, list: if true; // Public guide
-      // Relaxed for prototyping: allow any signed-in user to manage species
+      allow get, list: if true; 
       allow create, update, delete: if isSignedIn();
     }
 
     match /competitions/{competitionId} {
-      allow get, list: if true; // Public contests
+      allow get, list: if true;
       allow create, update, delete: if isAdmin();
     }
 
     match /catches/{catchId} {
-      // Allow reading if approved (public) OR if owner/admin
-      allow get, list: if (resource.data.status == 'approved') || (isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid));
+      // Relaxed for prototyping: allow list/read for all signed-in users
+      allow read: if isSignedIn();
       
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       
