@@ -3,7 +3,7 @@
 import { Navigation } from '@/components/Navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Medal, Star, Fish, Crown, Loader2, User as UserIcon, Scale, Target } from 'lucide-react';
+import { Trophy, Medal, Star, Fish, Crown, Loader2, User as UserIcon } from 'lucide-react';
 import { UserProfile, Catch, Contest } from '@/lib/types';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
@@ -43,59 +43,66 @@ export default function ClassementPage() {
       <main className="container mx-auto px-4 py-12 max-w-6xl">
         {/* Page Header */}
         <header className="mb-12 text-center">
-          <h1 className="font-headline text-4xl md:text-5xl font-bold text-[#0a3d62] mb-4">
-            Tableau d'Honneur {activeContestName}
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-[#0a3d62] mb-4 uppercase tracking-tight">
+            Tableau d'Honneur
           </h1>
-          <Badge variant="secondary" className="bg-slate-200/50 text-slate-500 font-medium px-4 py-1 rounded-full border-none">
-            Championnat Rade de Brest
-          </Badge>
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-px w-12 bg-slate-300" />
+            <Badge variant="secondary" className="bg-slate-200/50 text-slate-500 font-bold px-4 py-1 rounded-full border-none uppercase text-[10px] tracking-widest">
+              {activeContestName}
+            </Badge>
+            <div className="h-px w-12 bg-slate-300" />
+          </div>
         </header>
 
         {loadingRankings ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <Loader2 className="animate-spin h-10 w-10 text-primary" />
+            <p className="text-slate-400 font-medium">Chargement du classement...</p>
+          </div>
         ) : (
-          <div className="space-y-16">
+          <div className="space-y-20">
             
             {/* 1. PODIUM SECTION */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto px-4">
               {/* 2nd Place */}
               <div className="order-2 md:order-1">
-                <Card className="border-none shadow-sm bg-[#d1e9f0] rounded-3xl overflow-hidden text-center h-[300px] flex flex-col justify-center transition-transform hover:scale-105">
+                <Card className="border-none shadow-xl bg-[#d1e9f0] rounded-[2.5rem] overflow-hidden text-center h-[320px] flex flex-col justify-center transition-all hover:translate-y-[-8px]">
                   <CardContent className="pt-8">
-                    <div className="w-12 h-12 bg-white/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Medal className="h-6 w-6 text-slate-400" />
+                    <div className="w-14 h-14 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                      <Medal className="h-8 w-8 text-slate-400" />
                     </div>
-                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4">
-                      {top3[1]?.name || "En attente..."}
+                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4 mb-2">
+                      {top3[1]?.name || "---"}
                     </h3>
                     <div className="mt-2">
-                      <p className="text-5xl font-headline font-bold text-[#1e4e6e]">{top3[1]?.totalPoints || 0}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">POINTS</p>
+                      <p className="text-6xl font-headline font-bold text-[#1e4e6e]">{top3[1]?.totalPoints || 0}</p>
+                      <p className="text-[10px] font-bold text-[#1e4e6e]/60 uppercase tracking-widest">POINTS TOTAL</p>
                     </div>
-                    <div className="mt-6 pt-6 border-t border-white/20">
-                       <p className="text-xs text-slate-500">{top3[1]?.catchesCount || 0} captures</p>
+                    <div className="mt-8 pt-6 border-t border-white/30">
+                       <p className="text-xs font-bold text-[#1e4e6e]/70">{top3[1]?.catchesCount || 0} CAPTURES</p>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* 1st Place */}
-              <div className="order-1 md:order-2 scale-110 z-10">
-                <Card className="border-none shadow-2xl bg-[#ff8a50] rounded-3xl overflow-hidden text-center h-[380px] flex flex-col justify-center relative">
-                  <div className="absolute top-4 right-4 opacity-20">
-                    <Crown className="h-20 w-20 text-white" />
+              <div className="order-1 md:order-2 scale-105 md:scale-110 z-10">
+                <Card className="border-none shadow-2xl bg-[#ff8a50] rounded-[3rem] overflow-hidden text-center h-[420px] flex flex-col justify-center relative border-4 border-white/20">
+                  <div className="absolute top-6 right-6 opacity-10">
+                    <Crown className="h-24 w-24 text-white" />
                   </div>
                   <CardContent className="pt-10 text-white">
-                    <div className="w-20 h-20 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-                      <Trophy className="h-10 w-10 text-yellow-300" />
+                    <div className="w-24 h-24 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border-4 border-white/20">
+                      <Trophy className="h-12 w-12 text-yellow-300 drop-shadow-md" />
                     </div>
-                    <h3 className="font-headline text-3xl font-bold truncate px-4">{top3[0]?.name || "Champion"}</h3>
+                    <h3 className="font-headline text-3xl font-bold truncate px-4 mb-3">{top3[0]?.name || "Champion"}</h3>
                     <div className="mt-4">
-                      <p className="text-7xl font-headline font-bold">{top3[0]?.totalPoints || 0}</p>
-                      <p className="text-xs font-bold opacity-80 uppercase tracking-widest">POINTS</p>
+                      <p className="text-8xl font-headline font-bold leading-none">{top3[0]?.totalPoints || 0}</p>
+                      <p className="text-xs font-bold opacity-70 uppercase tracking-widest mt-2">POINTS TOTAL</p>
                     </div>
-                    <div className="mt-8 pt-8 border-t border-white/20 flex flex-col items-center">
-                       <p className="text-sm font-medium">{top3[0]?.catchesCount || 0} captures au compteur</p>
+                    <div className="mt-10 pt-8 border-t border-white/20">
+                       <p className="text-sm font-bold uppercase tracking-wider">{top3[0]?.catchesCount || 0} CAPTURES VALIDÉES</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -103,20 +110,20 @@ export default function ClassementPage() {
 
               {/* 3rd Place */}
               <div className="order-3">
-                <Card className="border-none shadow-sm bg-[#d1e9f0] rounded-3xl overflow-hidden text-center h-[280px] flex flex-col justify-center transition-transform hover:scale-105">
+                <Card className="border-none shadow-xl bg-[#d1e9f0] rounded-[2.5rem] overflow-hidden text-center h-[280px] flex flex-col justify-center transition-all hover:translate-y-[-8px]">
                   <CardContent className="pt-8">
-                    <div className="w-12 h-12 bg-white/40 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Medal className="h-6 w-6 text-orange-400" />
+                    <div className="w-14 h-14 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                      <Medal className="h-8 w-8 text-[#cd7f32]" />
                     </div>
-                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4">
-                      {top3[2]?.name || "En attente..."}
+                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4 mb-2">
+                      {top3[2]?.name || "---"}
                     </h3>
                     <div className="mt-2">
-                      <p className="text-4xl font-headline font-bold text-[#1e4e6e]">{top3[2]?.totalPoints || 0}</p>
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">POINTS</p>
+                      <p className="text-5xl font-headline font-bold text-[#1e4e6e]">{top3[2]?.totalPoints || 0}</p>
+                      <p className="text-[10px] font-bold text-[#1e4e6e]/60 uppercase tracking-widest">POINTS TOTAL</p>
                     </div>
-                    <div className="mt-6 pt-6 border-t border-white/20">
-                       <p className="text-xs text-slate-500">{top3[2]?.catchesCount || 0} captures</p>
+                    <div className="mt-6 pt-6 border-t border-white/30">
+                       <p className="text-xs font-bold text-[#1e4e6e]/70">{top3[2]?.catchesCount || 0} CAPTURES</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -124,105 +131,113 @@ export default function ClassementPage() {
             </div>
 
             {/* 2. BIG FISH RECORD SECTION */}
-            <div className="max-w-5xl mx-auto">
-              <Card className="bg-[#0f172a] text-white border-none rounded-[2.5rem] shadow-2xl overflow-hidden">
-                <CardContent className="p-8 md:p-14 relative">
-                   <div className="flex items-center gap-3 mb-10">
-                     <Star className="h-8 w-8 text-yellow-400 fill-yellow-400" />
-                     <h2 className="font-headline text-3xl font-bold italic tracking-widest uppercase">RECORD : BIG FISH</h2>
+            <div className="max-w-5xl mx-auto px-4">
+              <Card className="bg-[#0f172a] text-white border-none rounded-[3rem] shadow-2xl overflow-hidden relative group">
+                <div className="absolute top-0 right-0 p-8 opacity-5">
+                  <Fish className="h-64 w-64 rotate-12" />
+                </div>
+                
+                <CardContent className="p-10 md:p-16 relative z-10">
+                   <div className="flex items-center gap-4 mb-12">
+                     <div className="p-3 bg-yellow-400 rounded-2xl shadow-lg shadow-yellow-400/20">
+                       <Star className="h-8 w-8 text-[#0f172a] fill-[#0f172a]" />
+                     </div>
+                     <h2 className="font-headline text-3xl font-bold italic tracking-tighter uppercase">LE RECORD : BIG FISH</h2>
                    </div>
 
-                   <div className="grid md:grid-cols-12 gap-10 items-center">
+                   <div className="grid md:grid-cols-12 gap-12 items-center">
                       <div className="md:col-span-5">
-                         <div className="relative aspect-square rounded-[2rem] overflow-hidden border-8 border-slate-800 shadow-2xl bg-slate-800 flex items-center justify-center">
+                         <div className="relative aspect-square rounded-[2.5rem] overflow-hidden border-8 border-slate-800 shadow-2xl bg-slate-800 group-hover:border-slate-700 transition-colors">
                             {recordCatch?.imageUrl ? (
                               <Image 
                                 src={recordCatch.imageUrl} 
                                 alt="Big Fish Record" 
                                 fill 
-                                className="object-cover"
+                                className="object-cover transition-transform group-hover:scale-105 duration-700"
                               />
                             ) : (
-                              <Fish className="h-20 w-20 text-slate-700" />
+                              <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-600">
+                                <Fish className="h-24 w-24" />
+                                <p className="text-xs font-bold uppercase tracking-widest">En attente d'un record</p>
+                              </div>
                             )}
                          </div>
                       </div>
                       
-                      <div className="md:col-span-7 grid grid-cols-2 gap-6">
-                         <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">PÊCHEUR</p>
-                            <p className="text-2xl font-headline font-bold truncate">{recordCatch?.anglerName || "À venir..."}</p>
+                      <div className="md:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-colors">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">CHAMPION</p>
+                            <p className="text-2xl font-headline font-bold truncate">{recordCatch?.anglerName || "---"}</p>
                          </div>
-                         <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">ESPÈCE</p>
+                         <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-colors">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">ESPÈCE</p>
                             <p className="text-2xl font-headline font-bold text-primary truncate">{recordCatch?.fishName || "---"}</p>
                          </div>
-                         <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">GRANDEUR</p>
-                            <p className="text-4xl font-headline font-bold">{recordCatch?.size || 0} <span className="text-sm font-normal text-slate-400">cm</span></p>
+                         <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-colors">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">LONGUEUR</p>
+                            <p className="text-5xl font-headline font-bold">{recordCatch?.size || 0} <span className="text-sm font-normal text-slate-400">CM</span></p>
                          </div>
-                         <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">SCORE</p>
-                            <p className="text-4xl font-headline font-bold text-yellow-400">{recordCatch?.points || 0} <span className="text-sm font-normal text-slate-400">pts</span></p>
+                         <div className="bg-white/5 backdrop-blur-md p-8 rounded-[2rem] border border-white/10 hover:bg-white/10 transition-colors">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">POINTS RÉCOLTÉS</p>
+                            <p className="text-5xl font-headline font-bold text-yellow-400">{recordCatch?.points || 0} <span className="text-sm font-normal text-slate-400">PTS</span></p>
                          </div>
                       </div>
-                   </div>
-
-                   {/* Background Decor */}
-                   <div className="absolute top-10 right-10 opacity-[0.03] pointer-events-none">
-                     <Fish className="h-64 w-64 rotate-12" />
                    </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* 3. GENERAL RANKING TABLE */}
-            <div className="max-w-5xl mx-auto">
-               <Card className="border border-slate-100 shadow-lg rounded-3xl overflow-hidden bg-white">
+            <div className="max-w-5xl mx-auto px-4">
+               <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden bg-white">
                   <CardContent className="p-0">
-                    <div className="bg-slate-50 border-b border-slate-100 p-6 flex items-center justify-between">
-                       <div className="flex items-center gap-3">
-                         <Trophy className="h-5 w-5 text-slate-400" />
-                         <h3 className="text-md font-bold text-slate-600 uppercase tracking-widest">Classement Général</h3>
+                    <div className="bg-slate-50 border-b border-slate-100 p-8 flex items-center justify-between">
+                       <div className="flex items-center gap-4">
+                         <div className="p-2 bg-white rounded-xl shadow-sm">
+                           <Trophy className="h-5 w-5 text-slate-400" />
+                         </div>
+                         <h3 className="text-sm font-bold text-slate-600 uppercase tracking-widest">Classement Général Complet</h3>
                        </div>
-                       <Badge variant="outline" className="text-slate-400">{rankings?.length || 0} participants</Badge>
+                       <Badge variant="outline" className="text-slate-400 border-slate-200 bg-white font-bold">{rankings?.length || 0} PARTICIPANTS</Badge>
                     </div>
                     
                     <div className="divide-y divide-slate-50">
                        {rankings?.map((user, idx) => (
-                         <div key={user.id} className="flex items-center justify-between p-6 hover:bg-slate-50/50 transition-colors">
-                            <div className="flex items-center gap-8">
+                         <div key={user.id} className="flex items-center justify-between p-8 hover:bg-slate-50/50 transition-all group">
+                            <div className="flex items-center gap-10">
                                <div className={cn(
-                                 "w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-sm",
-                                 idx === 0 ? "bg-yellow-400 text-white" : 
-                                 idx === 1 ? "bg-slate-300 text-slate-600" : 
-                                 idx === 2 ? "bg-orange-300 text-white" : 
+                                 "w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg transition-transform group-hover:scale-110",
+                                 idx === 0 ? "bg-yellow-400 text-white shadow-lg shadow-yellow-400/20" : 
+                                 idx === 1 ? "bg-slate-200 text-slate-600" : 
+                                 idx === 2 ? "bg-orange-200 text-white" : 
                                  "bg-slate-100 text-slate-400"
                                )}>
                                  {idx + 1}
                                </div>
                                <div className="flex flex-col">
-                                  <span className="font-bold text-slate-800 text-xl">{user.name}</span>
-                                  <span className="text-xs text-slate-400 italic font-medium">Membre Rade Catch Champions</span>
+                                  <span className="font-bold text-slate-800 text-xl group-hover:text-primary transition-colors">{user.name}</span>
+                                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">MEMBRE CERTIFIÉ</span>
                                </div>
                             </div>
                             
                             <div className="flex items-center gap-16">
                                <div className="text-right hidden sm:block">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CAPTURES</p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">PRISES</p>
                                   <p className="text-xl font-headline font-bold text-slate-700">{user.catchesCount || 0}</p>
                                </div>
                                <div className="text-right min-w-[140px]">
-                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">TOTAL POINTS</p>
-                                  <p className="text-3xl font-headline font-bold text-[#0a3d62]">{user.totalPoints || 0}</p>
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">SCORE TOTAL</p>
+                                  <p className="text-4xl font-headline font-bold text-[#0a3d62]">{user.totalPoints || 0}</p>
                                </div>
                             </div>
                          </div>
                        ))}
                        {(!rankings || rankings.length === 0) && (
-                         <div className="py-24 text-center">
-                            <UserIcon className="h-12 w-12 text-slate-200 mx-auto mb-4" />
-                            <p className="text-slate-300 italic">Aucun pêcheur classé pour le moment.</p>
+                         <div className="py-32 text-center">
+                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                              <UserIcon className="h-10 w-10 text-slate-200" />
+                            </div>
+                            <p className="text-slate-400 font-medium italic">Aucun pêcheur classé pour le moment.</p>
                          </div>
                        )}
                     </div>
