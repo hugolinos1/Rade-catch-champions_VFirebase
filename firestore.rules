@@ -18,8 +18,6 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // Autorise la lecture individuelle et le listage pour tous les membres connectés
-      // indispensable pour sélectionner un pêcheur dans le module Concours
       allow get, list: if isSignedIn();
       allow create, update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
@@ -31,25 +29,25 @@ service cloud.firestore {
     }
 
     match /species/{speciesId} {
-      allow get, list: if true; 
-      allow create, update, delete: if isAdmin();
+      allow read: if true; 
+      allow write: if isAdmin();
     }
 
     match /competitions/{competitionId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /catches/{catchId} {
-      // Autorise explicitement get et list pour le classement et le flux d'activité
-      allow get, list: if true;
+      // Autorisation simplifiée pour la lecture publique des captures (classement et flux)
+      allow read: if true;
+      // Seuls les membres connectés peuvent enregistrer une prise
       allow create: if isSignedIn();
+      // Modification réservée à l'auteur ou à l'admin
       allow update, delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
     match /registration_codes/{codeId} {
-      // Lecture individuelle autorisée pour vérification lors de l'inscription
-      // Le listage (query) est réservé aux admins via la logique de l'application
       allow get: if isSignedIn();
       allow list: if isAdmin();
       allow write: if isAdmin();
