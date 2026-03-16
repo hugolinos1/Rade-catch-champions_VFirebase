@@ -22,16 +22,17 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList, ImageIcon } from 'lucide-react';
+import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList, ImageIcon, Upload } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { FishSpecies, BonusPointThreshold } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
 import { parseFishData } from '@/ai/flows/parse-fish-data-flow';
-import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useStorage, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const EMPTY_FISH: FishSpecies = {
   id: '',
@@ -55,8 +56,10 @@ const EMPTY_FISH: FishSpecies = {
 export default function GuidePage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const storage = useStorage();
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const fishQuery = useMemoFirebase(() => collection(firestore, 'fish_species'), [firestore]);
   const { data: fishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
@@ -66,6 +69,7 @@ export default function GuidePage() {
   const [editingFish, setEditingFish] = useState<FishSpecies | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [isParseDialogOpen, setIsParseDialogOpen] = useState(false);
   const [rawText, setRawText] = useState('');
 
@@ -110,6 +114,37 @@ export default function GuidePage() {
       title: "Espèce supprimée",
       description: `${name} a été retiré du guide.`
     });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingFish) return;
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `species/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      setEditingFish({
+        ...editingFish,
+        imageUrl: downloadURL
+      });
+
+      toast({
+        title: "Image chargée",
+        description: "L'image a été stockée avec succès."
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur de chargement",
+        description: "Impossible d'envoyer l'image vers Storage."
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleAIGenerate = async () => {
@@ -395,6 +430,7 @@ export default function GuidePage() {
               <DialogDescription>Collez n'importe quel texte contenant des informations sur un poisson (description, site web, etc.).</DialogDescription>
             </DialogHeader>
             <div className="py-4">
+              <span className="sr-only">Zone de saisie texte brut</span>
               <Textarea 
                 placeholder="Ex: Le Bar Franc (Dicentrarchus labrax) est un poisson combatif. On le trouve souvent sur les côtes rocheuses... Maille à 42cm. Points: 10/cm." 
                 className="min-h-[200px]"
@@ -478,17 +514,40 @@ export default function GuidePage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4" /> URL de l'image
-                    </Label>
-                    <Input 
-                      value={editingFish.imageUrl} 
-                      onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})}
-                      placeholder="https://example.com/image.jpg"
-                    />
+                  <div className="col-span-2 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" /> Illustration
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          type="file" 
+                          accept="image/*" 
+                          className="hidden" 
+                          ref={fileInputRef} 
+                          onChange={handleImageUpload} 
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={isUploading}
+                        >
+                          {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+                          Charger Photo
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] text-muted-foreground uppercase">Ou URL directe</Label>
+                      <Input 
+                        value={editingFish.imageUrl} 
+                        onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
                     {editingFish.imageUrl && (
-                      <div className="relative h-32 w-full rounded-md overflow-hidden bg-slate-100 border mt-2">
+                      <div className="relative h-48 w-full rounded-xl overflow-hidden bg-slate-100 border-2 border-dashed border-slate-200 mt-2">
                          <Image src={editingFish.imageUrl} alt="Preview" fill className="object-contain" />
                       </div>
                     )}
