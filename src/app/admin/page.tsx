@@ -112,7 +112,8 @@ export default function AdminPage() {
                       <TableHead>Date</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
-                    </TableHeader>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     <TableRow>
                       <TableCell>Jean-Marc L.</TableCell>
