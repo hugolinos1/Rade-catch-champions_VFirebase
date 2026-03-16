@@ -121,29 +121,33 @@ export default function GuidePage() {
     const file = e.target.files?.[0];
     if (!file || !editingFish) return;
 
+    // Reset input value to allow re-uploading the same file if it failed
+    if (fileInputRef.current) fileInputRef.current.value = '';
+
     setIsUploading(true);
     
     try {
-      const storageRef = ref(storage, `species/${Date.now()}_${file.name}`);
+      const storagePath = `species/${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, storagePath);
       const uploadTask = uploadBytesResumable(storageRef, file);
 
       uploadTask.on('state_changed', 
         (snapshot) => {
-          // Progress monitoring if needed
+          // Progress monitoring
         }, 
         (error) => {
-          console.error("Upload error detail:", error);
+          console.error("Storage Error:", error);
           setIsUploading(false);
           
-          let message = "Le bucket Storage est introuvable ou mal configuré.";
-          if (error.code === 'storage/unauthorized') message = "Permissions insuffisantes pour écrire dans Storage.";
-          if (error.code === 'storage/retry-limit-exceeded') message = "Le transfert a pris trop de temps. Réessayez.";
-          if (error.code === 'storage/project-not-found') message = "Projet Firebase non trouvé.";
+          let message = "Erreur de stockage.";
+          if (error.code === 'storage/unauthorized') message = "Non autorisé. Vérifiez vos règles Storage.";
+          if (error.code === 'storage/retry-limit-exceeded') message = "Le transfert a pris trop de temps.";
+          if (error.code === 'storage/project-not-found') message = "Le bucket Storage est introuvable ou mal configuré.";
 
           toast({
             variant: "destructive",
-            title: "Erreur de chargement",
-            description: message + " Vérifiez l'activation dans la console Firebase."
+            title: "Échec du chargement",
+            description: message
           });
         }, 
         async () => {
@@ -155,23 +159,23 @@ export default function GuidePage() {
             } : null);
 
             toast({
-              title: "Image chargée",
-              description: "L'image a été stockée avec succès."
+              title: "Photo ajoutée",
+              description: "L'image a été chargée avec succès."
             });
           } catch (err) {
-            console.error("URL retrieval error:", err);
+            console.error("Download URL Error:", err);
           } finally {
             setIsUploading(false);
           }
         }
       );
     } catch (err) {
-      console.error("Initial upload error:", err);
+      console.error("Upload Initialization Error:", err);
       setIsUploading(false);
       toast({
         variant: "destructive",
         title: "Erreur critique",
-        description: "Impossible d'initialiser le transfert vers Storage."
+        description: "Impossible d'initialiser le transfert."
       });
     }
   };
