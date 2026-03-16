@@ -58,7 +58,7 @@ export default function GuidePage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const storage = useStorage();
-  const { user } = useUser();
+  const { user } = user;
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -123,7 +123,6 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
-    // Timeout de 30 secondes pour compenser les éventuels délais CORS/Réseau
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('TIMEOUT')), 30000)
     );
@@ -448,7 +447,9 @@ export default function GuidePage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Importation par IA</DialogTitle>
-              <DialogDescription>Collez n'importe quel texte contenant des informations sur un poisson (description, site web, etc.).</DialogDescription>
+              <DialogDescription>
+                Collez n'importe quel texte contenant des informations sur un poisson (description, site web, etc.) pour que l'IA remplisse la fiche.
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <span className="sr-only">Zone de saisie texte brut</span>
@@ -471,9 +472,14 @@ export default function GuidePage() {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader className="flex flex-row items-center justify-between">
-              <DialogTitle className="font-headline text-2xl">
-                {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
-              </DialogTitle>
+              <div>
+                <DialogTitle className="font-headline text-2xl">
+                  {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
+                </DialogTitle>
+                <DialogDescription>
+                  Gérez les détails, l'image et les points de l'espèce sélectionnée.
+                </DialogDescription>
+              </div>
               <Button 
                 variant="outline" 
                 size="sm" 
