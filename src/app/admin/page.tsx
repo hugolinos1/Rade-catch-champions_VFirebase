@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -17,14 +18,62 @@ import {
   CheckCircle, 
   XCircle, 
   RefreshCcw,
-  Key
+  Key,
+  Database
 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useFirestore } from '@/firebase';
+import { doc, collection } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { FishSpecies } from '@/lib/types';
 
 export default function AdminPage() {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState('contests');
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedData = () => {
+    setIsSeeding(true);
+    
+    // Données de la Bonite basées sur l'image fournie
+    const bonite: FishSpecies = {
+      id: 'bonite',
+      name: 'Bonite',
+      scientificName: 'Sarda sarda',
+      description: 'La bonite à dos rayé est un scombridé pélagique proche du thon. Prédateur rapide et vorace, elle chasse en surface et forme parfois des chasses spectaculaires. Sa chair ferme et savoureuse en fait un poisson très recherché.',
+      imageUrl: 'https://firebasestorage.googleapis.com/v0/b/rade-catch-champions.firebasestorage.app/o/species%2F1773647822161_Bonite.jpg?alt=media&token=0b513251-9601-45c3-8ffb-0fea6839349f',
+      minSize: 25,
+      maxSize: 91,
+      averageSize: '30-50 cm',
+      pointsPerCm: 10, // Valeur par défaut
+      rarity: 'Rare',
+      techniques: ['Traîne', 'Lancer', 'Jigging', 'Pêche au vif'],
+      spots: ['Large de la Chaussée', 'Plateau de Rochebonne', 'Ouessant'],
+      bonusPoints: [
+        { threshold: 35, points: 12 },
+        { threshold: 50, points: 20 },
+        { threshold: 70, points: 35 }
+      ],
+      habitat: 'Pélagique',
+      diet: 'Petits poissons, céphalopodes',
+      keyFeatures: 'Dos rayé, prédateur rapide',
+      fishingTips: 'Chercher les chasses en surface',
+      eligibilityCriteria: 'Taille légale > 25cm'
+    };
+
+    const docRef = doc(firestore, 'fish_species', bonite.id);
+    setDocumentNonBlocking(docRef, bonite, { merge: true });
+
+    setTimeout(() => {
+      setIsSeeding(false);
+      toast({
+        title: "Données importées",
+        description: "La fiche de la Bonite a été ajoutée au guide."
+      });
+    }, 1000);
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -39,9 +88,14 @@ export default function AdminPage() {
             </h1>
             <p className="text-muted-foreground mt-1">Gérez les concours, les utilisateurs et le guide des poissons.</p>
           </div>
-          <Button variant="outline" className="font-headline" onClick={() => toast({ title: "Rafraîchissement", description: "Données synchronisées." })}>
-            <RefreshCcw className="mr-2 h-4 w-4" /> Actualiser
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="font-headline" onClick={handleSeedData} disabled={isSeeding}>
+              <Database className="mr-2 h-4 w-4" /> {isSeeding ? "Import..." : "Importer Exemples"}
+            </Button>
+            <Button variant="outline" className="font-headline" onClick={() => toast({ title: "Rafraîchissement", description: "Données synchronisées." })}>
+              <RefreshCcw className="mr-2 h-4 w-4" /> Actualiser
+            </Button>
+          </div>
         </header>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
