@@ -1,7 +1,8 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Medal, Star, Fish, Crown, Loader2, User as UserIcon, TrendingUp } from 'lucide-react';
 import { UserProfile, Catch, Contest } from '@/lib/types';
