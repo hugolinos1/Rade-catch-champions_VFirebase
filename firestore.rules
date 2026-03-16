@@ -7,7 +7,7 @@ service cloud.firestore {
      * 
      * Strategy:
      * - Public: Read-only access to fish guide and active competitions.
-     * - Authenticated: Can submit catches, manage their own profile, and list other members (for selection/rankings).
+     * - Authenticated: Can submit catches, manage their own profile, and list other members.
      * - Prototype Mode: Relaxed read permissions to simplify development and testing.
      * - Admin: Verified via /roles_admin collection.
      */
@@ -45,7 +45,7 @@ service cloud.firestore {
       allow write: if false; 
     }
 
-    match /fish_species/{speciesId} {
+    match /species/{speciesId} {
       // Guide is public
       allow get, list: if true; 
       // Prototyping: allow edits for any signed-in user for now
@@ -72,7 +72,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
     }
 
-    match /invitation_codes/{codeId} {
+    match /registration_codes/{codeId} {
       allow get: if isSignedIn();
       allow list: if isAdmin();
       allow create, delete: if isAdmin();

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -124,7 +123,7 @@ export default function GuidePage() {
     setIsUploading(true);
     
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('TIMEOUT_CORS')), 25000)
+      setTimeout(() => reject(new Error('TIMEOUT')), 30000)
     );
 
     try {
@@ -151,8 +150,8 @@ export default function GuidePage() {
       console.error("Storage Error:", error);
       let message = "Une erreur est survenue lors du chargement.";
       
-      if (error.message === 'TIMEOUT_CORS') {
-        message = "Le serveur ne répond pas. Vérifiez la configuration CORS de votre bucket.";
+      if (error.message === 'TIMEOUT') {
+        message = "Délai dépassé. Vérifiez la configuration CORS de votre bucket Google Cloud.";
       } else if (error.code === 'storage/unauthorized') {
         message = "Accès refusé. Vérifiez vos règles de sécurité Storage.";
       }
