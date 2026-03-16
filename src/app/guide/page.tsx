@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/Dialog";
+} from "@/components/ui/dialog";
 import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList, ImageIcon, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
@@ -123,7 +123,6 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
-    // Création d'un délai de sécurité pour éviter le spinner infini
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('TIMEOUT')), 15000)
     );
@@ -132,7 +131,6 @@ export default function GuidePage() {
       const storagePath = `species/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
       
-      // Course entre l'upload et le timeout
       const snapshot = await Promise.race([
         uploadBytes(storageRef, file),
         timeoutPromise
@@ -447,7 +445,6 @@ export default function GuidePage() {
           </div>
         )}
 
-        {/* AI Parse Dialog */}
         <Dialog open={isParseDialogOpen} onOpenChange={setIsParseDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -472,7 +469,6 @@ export default function GuidePage() {
           </DialogContent>
         </Dialog>
 
-        {/* Edit/Create Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader className="flex flex-row items-center justify-between">
