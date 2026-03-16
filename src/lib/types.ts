@@ -31,16 +31,18 @@ export type FishSpecies = {
 
 export type Catch = {
   id: string;
-  userId: string;
-  userName: string;
+  anglerId: string;
+  anglerName: string;
+  competitionId: string;
   fishId: string;
   fishName: string;
-  length: number;
-  weight: number;
-  photoUrl: string;
-  timestamp: string;
+  size: number;
+  weight?: number;
+  imageUrl: string;
+  date: string;
   points: number;
   status: 'pending' | 'approved' | 'rejected';
+  location?: string;
 };
 
 export type Contest = {

@@ -22,7 +22,7 @@ export default function ClassementPage() {
 
   // Query for the biggest approved catch (Record Big Fish)
   const bigFishQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'catches'), where('status', '==', 'approved'), orderBy('length', 'desc'), limit(1)), 
+    query(collection(firestore, 'catches'), where('status', '==', 'approved'), orderBy('size', 'desc'), limit(1)), 
   [firestore]);
 
   const { data: rankings, isLoading: loadingRankings } = useCollection<UserProfile>(topUsersQuery);
@@ -121,9 +121,9 @@ export default function ClassementPage() {
                         <Fish className="h-12 w-12 text-primary" />
                       </div>
                       <div>
-                        <h4 className="text-3xl font-headline font-bold">{recordCatch.fishName} - {recordCatch.length}cm</h4>
-                        <p className="text-slate-300">Capturé par <span className="text-white font-bold">{recordCatch.userName}</span></p>
-                        <p className="text-xs text-slate-500 mt-1">Date: {new Date(recordCatch.timestamp).toLocaleDateString()}</p>
+                        <h4 className="text-3xl font-headline font-bold">{recordCatch.fishName} - {recordCatch.size}cm</h4>
+                        <p className="text-slate-300">Capturé par <span className="text-white font-bold">{recordCatch.anglerName}</span></p>
+                        <p className="text-xs text-slate-500 mt-1">Date: {recordCatch.date}</p>
                       </div>
                     </div>
                   ) : (
