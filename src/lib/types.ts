@@ -41,7 +41,7 @@ export type Catch = {
 
 export type Contest = {
   id: string;
-  title: string;
+  name: string;
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -54,6 +54,7 @@ export type UserProfile = {
   role: 'admin' | 'user';
   totalPoints: number;
   catchesCount: number;
+  avatarUrl?: string;
 };
 
 export type InvitationCode = {

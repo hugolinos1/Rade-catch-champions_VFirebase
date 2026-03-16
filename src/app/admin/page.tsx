@@ -9,16 +9,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { 
   Settings, 
-  Users, 
-  Fish, 
-  FileText, 
   Plus, 
-  Trash2, 
   Edit, 
   CheckCircle, 
   XCircle, 
-  RefreshCcw,
-  Key,
   Database,
   Loader2
 } from 'lucide-react';
@@ -26,7 +20,7 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection } from 'firebase/firestore';
-import { setDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { FishSpecies, Catch, UserProfile, Contest } from '@/lib/types';
 
 export default function AdminPage() {
@@ -52,7 +46,7 @@ export default function AdminPage() {
       name: 'Bonite',
       scientificName: 'Sarda sarda',
       description: 'La bonite à dos rayé est un scombridé pélagique proche du thon. Prédateur rapide et vorace, elle chasse en surface et forme parfois des chasses spectaculaires.',
-      imageUrl: 'https://picsum.photos/seed/bonite/600/400',
+      imageUrl: 'https://firebasestorage.googleapis.com/v0/b/studio-1011029963-7eded.firebasestorage.app/o/species%2F1773647822161_Bonite.jpg?alt=media&token=0b513251-9601-45c3-8ffb-0fea6839349f',
       minSize: 25,
       maxSize: 91,
       averageSize: '30-50 cm',
@@ -130,7 +124,7 @@ export default function AdminPage() {
                     <TableBody>
                       {contests?.map((c) => (
                         <TableRow key={c.id}>
-                          <TableCell className="font-medium">{c.title}</TableCell>
+                          <TableCell className="font-medium">{c.name}</TableCell>
                           <TableCell><Badge className={c.isActive ? "bg-green-500" : ""}>{c.isActive ? "Actif" : "Inactif"}</Badge></TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
@@ -190,33 +184,33 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="users">
-            <div className="grid md:grid-cols-3 gap-6">
-              <Card className="md:col-span-2">
-                <CardHeader><CardTitle className="font-headline">Membres</CardTitle></CardHeader>
-                <CardContent>
-                  {loadingUsers ? <Loader2 className="animate-spin mx-auto" /> : (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Points</TableHead>
-                          <TableHead className="text-right">Rôle</TableHead>
+            <Card>
+              <CardHeader><CardTitle className="font-headline">Membres</CardTitle></CardHeader>
+              <CardContent>
+                {loadingUsers ? <Loader2 className="animate-spin mx-auto" /> : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Points</TableHead>
+                        <TableHead>Prises</TableHead>
+                        <TableHead className="text-right">Rôle</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {users?.map((u) => (
+                        <TableRow key={u.id}>
+                          <TableCell>{u.name}</TableCell>
+                          <TableCell>{u.totalPoints || 0}</TableCell>
+                          <TableCell>{u.catchesCount || 0}</TableCell>
+                          <TableCell className="text-right"><Badge variant="outline">{u.role}</Badge></TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users?.map((u) => (
-                          <TableRow key={u.id}>
-                            <TableCell>{u.name}</TableCell>
-                            <TableCell>{u.totalPoints}</TableCell>
-                            <TableCell className="text-right"><Badge variant="outline">{u.role}</Badge></TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>
