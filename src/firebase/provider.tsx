@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -81,7 +80,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
             toast({
               variant: "destructive",
               title: "Erreur de connexion",
-              description: "Impossible d'établir une session sécurisée. Vérifiez votre connexion."
+              description: "Impossible d'établir une session sécurisée. Vérifiez que l'authentification anonyme est activée dans la console Firebase."
             });
           });
         }
