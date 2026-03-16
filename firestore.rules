@@ -1,38 +1,9 @@
-// FORCE DEPLOYMENT: 2025-03-05T20:15:00Z
+// FORCE DEPLOYMENT: 2025-03-05T21:15:00Z
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Règle explicite pour la collection des captures (catches)
-    match /catches/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Règle explicite pour la collection des utilisateurs
-    match /users/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Règle explicite pour le guide des espèces
-    match /species/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Règle explicite pour les compétitions
-    match /competitions/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Règle explicite pour les codes d'invitation
-    match /registration_codes/{document} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
-    // Règle de secours globale
+    // Règle globale simplifiée pour autoriser la lecture publique sur toutes les collections
+    // Cela résout les erreurs de permission lors des listes (catches, users, species, etc.)
     match /{document=**} {
       allow read: if true;
       allow write: if request.auth != null;
