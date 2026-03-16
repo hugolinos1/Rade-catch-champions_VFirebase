@@ -86,6 +86,7 @@ export default function GuidePage() {
     if (!rawFishList) return [];
     return rawFishList.map(fish => ({
       ...fish,
+      // On mappe les champs Firestore vers notre type local FishSpecies
       imageUrl: fish.image || fish.imageUrl || '',
       minSize: fish.legalSize || fish.minSize || 0,
       bonusPoints: (fish.pointsSystem || fish.bonusPoints || []).map(p => ({
@@ -286,9 +287,27 @@ export default function GuidePage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 text-slate-600 mt-4 bg-slate-50 p-2 rounded-lg">
-                    <Ruler className="h-4 w-4 text-orange-400" />
-                    <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
+                  
+                  <div className="flex flex-col gap-2 mt-4">
+                    <div className="flex items-center gap-2 text-slate-600 bg-slate-50 p-2 rounded-lg">
+                      <Ruler className="h-4 w-4 text-orange-400" />
+                      <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
+                    </div>
+
+                    {/* Affichage des points Bonus sur la vignette */}
+                    {fish.bonusPoints && fish.bonusPoints.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {fish.bonusPoints.slice(0, 2).map((bp, idx) => (
+                          <Badge key={idx} variant="outline" className="text-[9px] border-primary/20 text-primary bg-primary/5 flex items-center gap-1">
+                            <Target className="h-2 w-2" />
+                            +{bp.points} pts ({bp.threshold}cm)
+                          </Badge>
+                        ))}
+                        {fish.bonusPoints.length > 2 && (
+                          <span className="text-[9px] text-muted-foreground self-center ml-1">...</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -309,8 +328,8 @@ export default function GuidePage() {
                   {viewingFish?.rarity}
                 </Badge>
               </div>
-              <DialogDescription className="sr-only">
-                Détails complets de l'espèce {viewingFish?.name}.
+              <DialogDescription>
+                Fiche descriptive complète pour l'espèce {viewingFish?.name}, incluant la maille, les techniques et les bonus.
               </DialogDescription>
             </DialogHeader>
             
@@ -401,7 +420,7 @@ export default function GuidePage() {
             <DialogHeader>
               <DialogTitle>{editingFish?.id ? "Modifier l'espèce" : "Nouvelle espèce"}</DialogTitle>
               <DialogDescription>
-                Remplissez les informations de la fiche pour {editingFish?.name || "le nouveau poisson"}.
+                Formulaire permettant de mettre à jour les informations de l'espèce sélectionnée.
               </DialogDescription>
             </DialogHeader>
             {editingFish && (
