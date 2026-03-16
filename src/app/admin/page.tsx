@@ -61,7 +61,7 @@ export default function AdminPage() {
       eligibilityCriteria: 'Taille > 25cm'
     };
 
-    const docRef = doc(firestore, 'fish_species', bonite.id);
+    const docRef = doc(firestore, 'species', bonite.id);
     setDocumentNonBlocking(docRef, bonite, { merge: true });
 
     setTimeout(() => {

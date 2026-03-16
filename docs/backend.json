@@ -1,370 +1,78 @@
+
 {
   "entities": {
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a participant or administrator within the Rade Catch Champions application, storing their profile information and linking to their activities.",
+      "description": "Represents a participant or administrator.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "username": {
-          "type": "string",
-          "description": "The public display name or nickname of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "The user's email address, used for identification purposes. (Not for authentication credentials).",
-          "format": "email"
-        },
-        "registrationDate": {
-          "type": "string",
-          "description": "The date and time when the user registered in the application.",
-          "format": "date-time"
-        },
-        "profilePictureUrl": {
-          "type": "string",
-          "description": "URL to the user's profile picture.",
-          "format": "uri"
-        },
-        "isAdmin": {
-          "type": "boolean",
-          "description": "Indicates if the user has administrative privileges within the application."
-        }
-      },
-      "required": [
-        "id",
-        "username",
-        "email",
-        "registrationDate",
-        "isAdmin"
-      ]
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["participant", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "totalPoints": { "type": "number" },
+        "catchesCount": { "type": "number" },
+        "avatarUrl": { "type": "string", "format": "uri" }
+      }
     },
     "FishSpecies": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "FishSpecies",
       "type": "object",
-      "description": "Defines a species of fish eligible for contests, including its characteristics and point value.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the FishSpecies entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The common name of the fish species (e.g., 'Bar', 'Maquereau')."
-        },
-        "scientificName": {
-          "type": "string",
-          "description": "The scientific name of the fish species."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the fish species, its habitat, and characteristics."
-        },
-        "minSizeCm": {
-          "type": "number",
-          "description": "Minimum length in centimeters required for a catch of this species to be eligible."
-        },
-        "maxSizeCm": {
-          "type": "number",
-          "description": "Maximum length in centimeters allowed for a catch of this species to be eligible (e.g., for 'no-kill' rules or specific categories)."
-        },
-        "basePoints": {
-          "type": "number",
-          "description": "The base points awarded for catching a fish of this species in a competition."
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to an image illustrating the fish species.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "scientificName",
-        "description",
-        "basePoints"
-      ]
-    },
-    "Competition": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Competition",
-      "type": "object",
-      "description": "Represents a specific fishing competition, including its rules, dates, and eligible fish species.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Competition entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The official name of the fishing competition."
-        },
-        "description": {
-          "type": "string",
-          "description": "A detailed description of the competition, its objectives, and general information."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date and time when the competition officially starts.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The date and time when the competition officially ends.",
-          "format": "date-time"
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "Indicates if the competition is currently active and open for catch submissions."
-        },
-        "rules": {
-          "type": "string",
-          "description": "Specific rules and guidelines for this particular competition."
-        },
-        "eligibleFishSpeciesIds": {
-          "type": "array",
-          "description": "References to FishSpecies that are eligible to be caught and scored in this competition. (Relationship: FishSpecies N:N Competition)",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "startDate",
-        "endDate",
-        "isActive",
-        "rules",
-        "eligibleFishSpeciesIds"
-      ]
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "scientificName": { "type": "string" },
+        "description": { "type": "string" },
+        "minSize": { "type": "number" },
+        "pointsPerCm": { "type": "number" },
+        "imageUrl": { "type": "string", "format": "uri" }
+      }
     },
     "Catch": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Catch",
       "type": "object",
-      "description": "Records a single fish caught by a user during a specific competition, including details, a photo, and calculated points.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Catch entity."
-        },
-        "competitionId": {
-          "type": "string",
-          "description": "Reference to the Competition in which this catch was made. (Relationship: Competition 1:N Catch)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who made this catch. (Relationship: User 1:N Catch)"
-        },
-        "fishSpeciesId": {
-          "type": "string",
-          "description": "Reference to the FishSpecies that was caught. (Relationship: FishSpecies 1:N Catch)"
-        },
-        "catchDateTime": {
-          "type": "string",
-          "description": "The exact date and time when the fish was caught.",
-          "format": "date-time"
-        },
-        "lengthCm": {
-          "type": "number",
-          "description": "The measured length of the caught fish in centimeters."
-        },
-        "weightKg": {
-          "type": "number",
-          "description": "The measured weight of the caught fish in kilograms."
-        },
-        "photoUrl": {
-          "type": "string",
-          "description": "URL to the photo submitted by the user as proof of the catch.",
-          "format": "uri"
-        },
-        "calculatedPoints": {
-          "type": "number",
-          "description": "The total points awarded for this catch, calculated based on the fish species and competition rules."
-        },
-        "status": {
-          "type": "string",
-          "description": "The moderation status of the catch (e.g., 'pending_review', 'approved', 'rejected')."
-        },
-        "adminNotes": {
-          "type": "string",
-          "description": "Any notes added by an administrator during the moderation process."
-        }
-      },
-      "required": [
-        "id",
-        "competitionId",
-        "userId",
-        "fishSpeciesId",
-        "catchDateTime",
-        "lengthCm",
-        "photoUrl",
-        "calculatedPoints",
-        "status"
-      ]
-    },
-    "InvitationCode": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "InvitationCode",
-      "type": "object",
-      "description": "Manages invitation codes generated by administrators to allow new users to register and access the application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the InvitationCode entity."
-        },
-        "code": {
-          "type": "string",
-          "description": "The unique string or token that serves as the invitation code."
-        },
-        "issuedByUserId": {
-          "type": "string",
-          "description": "Reference to the User (administrator) who generated this invitation code. (Relationship: User 1:N InvitationCode)"
-        },
-        "issuedDate": {
-          "type": "string",
-          "description": "The date and time when the invitation code was generated.",
-          "format": "date-time"
-        },
-        "expiryDate": {
-          "type": "string",
-          "description": "The date and time when the invitation code expires, if applicable.",
-          "format": "date-time"
-        },
-        "isUsed": {
-          "type": "boolean",
-          "description": "Indicates whether the invitation code has been successfully used by a user."
-        },
-        "usedByUserId": {
-          "type": "string",
-          "description": "Reference to the User who successfully used this invitation code. Null if not yet used. (Relationship: User 1:1 InvitationCode)"
-        },
-        "usedDate": {
-          "type": "string",
-          "description": "The date and time when the invitation code was used.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "code",
-        "issuedByUserId",
-        "issuedDate",
-        "isUsed"
-      ]
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "fishId": { "type": "string" },
+        "fishName": { "type": "string" },
+        "length": { "type": "number" },
+        "weight": { "type": "number" },
+        "photoUrl": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "points": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores individual user profiles. Users can manage their own profiles. Includes denormalized 'id' matching 'userId' for authorization independence. 'isAdmin' field will be used for UI purposes, but the '/roles_admin/{userId}' collection will be the authoritative source for admin rules.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, corresponding to Firebase Authentication UID."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Dedicated collection for administrative roles. The existence of a document here (with 'userId' as document ID) grants administrative privileges. This is used for robust, independent authorization checks in security rules. Minimal data (e.g., just an ID) can be stored, or simply an empty document.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who possesses an administrative role."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/fish_species/{speciesId}",
-        "definition": {
-          "entityName": "FishSpecies",
-          "schema": {
-            "$ref": "#/backend/entities/FishSpecies"
-          },
-          "description": "Contains definitions of all fish species eligible for contests. Publicly readable for all authenticated users (Guide des Poissons page). Only administrators can create, modify, or delete entries.",
-          "params": [
-            {
-              "name": "speciesId",
-              "description": "The unique identifier for a specific fish species."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/competitions/{competitionId}",
-        "definition": {
-          "entityName": "Competition",
-          "schema": {
-            "$ref": "#/backend/entities/Competition"
-          },
-          "description": "Stores details and rules for each fishing competition. Publicly readable by all authenticated users (Concours page, Classement page). Only administrators can create, modify, or delete competitions.",
-          "params": [
-            {
-              "name": "competitionId",
-              "description": "The unique identifier for a specific fishing competition."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/catches/{catchId}",
-        "definition": {
-          "entityName": "Catch",
-          "schema": {
-            "$ref": "#/backend/entities/Catch"
-          },
-          "description": "Records individual fish catch submissions by users for competitions. Includes denormalized 'userId' and 'competitionId' for authorization independence and efficient querying. Access is moderated by the 'status' field: owners can read/update their own; admins can manage all; approved catches are globally readable for rankings. Only owners can create catches.",
-          "params": [
-            {
-              "name": "catchId",
-              "description": "The unique identifier for a specific catch submission."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/invitation_codes/{codeId}",
-        "definition": {
-          "entityName": "InvitationCode",
-          "schema": {
-            "$ref": "#/backend/entities/InvitationCode"
-          },
-          "description": "Manages unique invitation codes for new user registration. Primarily managed (create, read, update, delete) by administrators. Usage (marking as 'isUsed', setting 'usedByUserId') is expected to be mediated by a backend function for security, or via very strict Firestore rules for client-side usage.",
-          "params": [
-            {
-              "name": "codeId",
-              "description": "The unique identifier for an invitation code (often matching the 'code' itself)."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore structure for Rade Catch Champions is designed following the core principles of Authorization Independence, Structural Segregation, consistent Access Modeling, and Data Clarity to ensure security, scalability, and debuggability. Authorization Independence is primarily achieved through: 1. Denormalization: For Catch documents, the userId and competitionId are stored directly within each document. This eliminates the need for security rules to perform get() operations on parent User or Competition documents to determine ownership or context. Instead, rules can directly check resource.data.userId == request.auth.uid or resource.data.competitionId == someValue. 2. Dedicated Roles Collection: Administrative privileges are managed using a dedicated /roles_admin/{userId} collection. This allows security rules to check for admin status using get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).exists() rather than relying on an isAdmin field within the user's profile document (/users/{userId}). This pattern avoids get() calls on potentially large User documents and ensures atomic and independent authorization checks. Queryability and Authorization Posture (QAPs) are supported through Structural Segregation and clear access modeling: * Public Read Collections: /fish_species and /competitions are top-level collections with a homogeneous security posture: publicly readable by all authenticated users. This simplifies rules, allowing list operations to be performed directly on these collections without needing complex filtering logic within the rules themselves. Data is either fully accessible (for general users) or restricted to administrators for modification. * User-Owned Data: /users/{userId} ensures path-based ownership, making it simple for users to manage their own profiles. For Catches, while they are globally queryable for rankings, each Catch document explicitly contains userId. This allows users to perform list queries on their own catches (.where('userId', '==', request.auth.uid)) and ensures that security rules can validate ownership for create/update/delete operations without needing to filter on the server-side for global reads. * Moderated Data: The /catches collection employs an explicit status field (pending_review, approved, rejected). This allows for clear segregation of access based on the status, where only approved catches are visible globally for ranking/recent views, while pending_review and rejected catches are visible only to their userId owner and administrators. Rules can enforce these conditions without needing separate collections for each status. * Admin-Specific Collections: /roles_admin and /invitation_codes are primarily managed by administrators, simplifying their security posture to admin-only write access, with specific, controlled read/update operations for invitation_codes during the user registration process (likely mediated by a Cloud Function for security). This structure ensures that security rules are straightforward, explicit, and easy to debug, as each collection has a clear intent and access model, and authorization checks are independent of nested get() calls."
+    "/users/{userId}": {
+      "schema": { "$ref": "#/backend/entities/User" },
+      "description": "Collection des utilisateurs"
+    },
+    "/species/{speciesId}": {
+      "schema": { "$ref": "#/backend/entities/FishSpecies" },
+      "description": "Guide des poissons"
+    },
+    "/competitions/{competitionId}": {
+      "schema": { "type": "object" },
+      "description": "Concours de pêche"
+    },
+    "/catches/{catchId}": {
+      "schema": { "$ref": "#/backend/entities/Catch" },
+      "description": "Prises enregistrées"
+    },
+    "/registration_codes/{codeId}": {
+      "schema": { "type": "object" },
+      "description": "Codes d'invitation"
+    }
   }
 }

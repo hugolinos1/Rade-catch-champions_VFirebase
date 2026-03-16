@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -23,7 +24,7 @@ export default function ConcoursPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Firestore Collections
-  const fishQuery = useMemoFirebase(() => collection(firestore, 'fish_species'), [firestore]);
+  const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const recentCatchesQuery = useMemoFirebase(() => 
     query(collection(firestore, 'catches'), orderBy('timestamp', 'desc'), limit(10)), 

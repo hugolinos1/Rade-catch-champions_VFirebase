@@ -62,7 +62,7 @@ export default function GuidePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const fishQuery = useMemoFirebase(() => collection(firestore, 'fish_species'), [firestore]);
+  const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const { data: fishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
 
   const isAdmin = !!user; 
@@ -92,10 +92,10 @@ export default function GuidePage() {
   const handleSaveFish = () => {
     if (!editingFish) return;
     
-    const docId = editingFish.id || doc(collection(firestore, 'fish_species')).id;
+    const docId = editingFish.id || doc(collection(firestore, 'species')).id;
     const finalFish = { ...editingFish, id: docId };
     
-    const docRef = doc(firestore, 'fish_species', docId);
+    const docRef = doc(firestore, 'species', docId);
     setDocumentNonBlocking(docRef, finalFish, { merge: true });
     
     toast({
@@ -109,7 +109,7 @@ export default function GuidePage() {
 
   const handleDeleteFish = (id: string, name: string) => {
     if (!confirm(`Supprimer ${name} ?`)) return;
-    const docRef = doc(firestore, 'fish_species', id);
+    const docRef = doc(firestore, 'species', id);
     deleteDocumentNonBlocking(docRef);
     toast({
       title: "Espèce supprimée",
@@ -123,7 +123,6 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
-    // Timeout de sécurité pour éviter l'icône tournante infinie en cas de blocage CORS
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('TIMEOUT_CORS')), 25000)
     );
@@ -132,7 +131,6 @@ export default function GuidePage() {
       const storagePath = `species/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
       
-      // On lance l'upload et on attend soit la réussite, soit le timeout
       const snapshot = await Promise.race([
         uploadBytes(storageRef, file),
         timeoutPromise
@@ -154,7 +152,7 @@ export default function GuidePage() {
       let message = "Une erreur est survenue lors du chargement.";
       
       if (error.message === 'TIMEOUT_CORS') {
-        message = "Le serveur ne répond pas. Vérifiez que la commande CORS 'gsutil' a bien été appliquée sur votre bucket.";
+        message = "Le serveur ne répond pas. Vérifiez la configuration CORS de votre bucket.";
       } else if (error.code === 'storage/unauthorized') {
         message = "Accès refusé. Vérifiez vos règles de sécurité Storage.";
       }
