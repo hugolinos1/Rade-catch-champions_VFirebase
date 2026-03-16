@@ -448,13 +448,13 @@ export default function GuidePage() {
             <DialogHeader>
               <DialogTitle>Importation par IA</DialogTitle>
               <DialogDescription>
-                Collez n'importe quel texte contenant des informations sur un poisson (description, site web, etc.) pour que l'IA remplisse la fiche.
+                Collez n'importe quel texte contenant des informations sur un poisson pour que l'IA remplisse la fiche.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <span className="sr-only">Zone de saisie texte brut</span>
               <Textarea 
-                placeholder="Ex: Le Bar Franc (Dicentrarchus labrax) est un poisson combatif. On le trouve souvent sur les côtes rocheuses... Maille à 42cm. Points: 10/cm." 
+                placeholder="Ex: Le Bar Franc (Dicentrarchus labrax) est un poisson combatif... Maille à 42cm. Points: 10/cm." 
                 className="min-h-[200px]"
                 value={rawText}
                 onChange={(e) => setRawText(e.target.value)}
