@@ -44,16 +44,18 @@ const parseFishPrompt = ai.definePrompt({
   name: 'parseFishPrompt',
   input: {schema: ParseFishDataInputSchema},
   output: {schema: FishSpeciesSchema},
-  prompt: `You are an expert at extracting structured information from raw text.
+  prompt: `You are an expert at extracting structured information from raw text and mapping it to a specific database schema.
 Your task is to take the provided text about a fish species and convert it into a valid JSON object matching the requested schema.
 
-Instructions:
-1. Extract as much information as possible.
-2. If a value is missing, provide a logical default or empty string/array.
-3. For pointsPerCm, if not mentioned, use 10.
-4. For rarity, choose the most appropriate value based on the text.
-5. Ensure the description is engaging and informative.
+Mapping Instructions:
+1. 'legalSize' or 'minSizeCm' should be mapped to 'minSize'.
+2. 'pointsSystem' or any list of points/thresholds should be mapped to 'bonusPoints'. 
+3. In 'bonusPoints', 'minSize' or 'thresholdCm' maps to 'threshold'.
+4. 'very-rare' maps to 'Très rare', 'rare' to 'Rare', and anything else to 'Commun'.
+5. If 'pointsPerCm' is not mentioned, default to 10.
+6. Extract habitat, diet, and features from the description if they are not explicitly listed.
+7. Ensure all strings are in French if possible.
 
-Raw Text:
+Raw Text/Data:
 {{{this}}}`,
 });
