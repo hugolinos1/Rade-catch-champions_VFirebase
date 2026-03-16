@@ -123,12 +123,21 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
+    // Création d'un délai de sécurité pour éviter le spinner infini
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+    );
+
     try {
       const storagePath = `species/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
       
-      // Utilisation de uploadBytes pour une gestion d'erreur simplifiée et directe
-      const snapshot = await uploadBytes(storageRef, file);
+      // Course entre l'upload et le timeout
+      const snapshot = await Promise.race([
+        uploadBytes(storageRef, file),
+        timeoutPromise
+      ]) as any;
+
       const downloadURL = await getDownloadURL(snapshot.ref);
 
       setEditingFish(prev => prev ? {
@@ -142,14 +151,14 @@ export default function GuidePage() {
       });
     } catch (error: any) {
       console.error("Storage Error:", error);
-      let message = "Impossible d'envoyer l'image vers Storage.";
+      let message = "Une erreur est survenue lors du chargement.";
       
-      if (error.code === 'storage/unauthorized') {
-        message = "Accès refusé. Vérifiez que vous êtes connecté et que les règles Storage sont actives.";
+      if (error.message === 'TIMEOUT') {
+        message = "Délai dépassé. Vérifiez les paramètres CORS de votre bucket ou votre connexion.";
+      } else if (error.code === 'storage/unauthorized') {
+        message = "Accès refusé. Vérifiez que vous êtes connecté.";
       } else if (error.code === 'storage/retry-limit-exceeded') {
-        message = "Délai d'attente dépassé. Vérifiez votre connexion.";
-      } else if (error.code === 'storage/unknown') {
-        message = "Erreur de configuration du bucket Storage.";
+        message = "Le chargement a échoué (limite d'essais atteinte).";
       }
 
       toast({
