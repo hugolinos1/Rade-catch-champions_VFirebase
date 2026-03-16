@@ -1,9 +1,9 @@
-// FORCE DEPLOYMENT: 2025-03-05T18:30:00Z
+// FORCE DEPLOYMENT: 2025-03-05T19:45:00Z
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Règle globale simplifiée : Lecture publique pour tout, Écriture si authentifié.
-    // Cela garantit que le Classement, le Guide et les flux fonctionnent sans erreur.
+    // Règle globale ultra-permissive pour la lecture afin de résoudre les erreurs de permission.
+    // La lecture est publique pour toutes les collections (classement, guide, flux).
     match /{document=**} {
       allow read: if true;
       allow write: if request.auth != null;
