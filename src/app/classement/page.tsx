@@ -34,7 +34,6 @@ export default function ClassementPage() {
 
   const activeContestName = contests?.[0]?.name || "Concours en cours";
   const top3 = rankings?.slice(0, 3) || [];
-  const restOfRankings = rankings?.slice(3) || [];
   const recordCatch = bigFishes?.[0];
 
   return (
@@ -55,10 +54,10 @@ export default function ClassementPage() {
         {loadingRankings ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
         ) : (
-          <div className="space-y-12">
+          <div className="space-y-16">
             
             {/* 1. PODIUM SECTION */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end max-w-5xl mx-auto mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end max-w-5xl mx-auto">
               {/* 2nd Place */}
               <div className="order-2 md:order-1">
                 <Card className="border-none shadow-sm bg-[#d1e9f0] rounded-3xl overflow-hidden text-center h-[300px] flex flex-col justify-center transition-transform hover:scale-105">
@@ -66,7 +65,9 @@ export default function ClassementPage() {
                     <div className="w-12 h-12 bg-white/40 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Medal className="h-6 w-6 text-slate-400" />
                     </div>
-                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e]">{top3[1]?.name || "En attente..."}</h3>
+                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4">
+                      {top3[1]?.name || "En attente..."}
+                    </h3>
                     <div className="mt-2">
                       <p className="text-5xl font-headline font-bold text-[#1e4e6e]">{top3[1]?.totalPoints || 0}</p>
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">POINTS</p>
@@ -88,7 +89,7 @@ export default function ClassementPage() {
                     <div className="w-20 h-20 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
                       <Trophy className="h-10 w-10 text-yellow-300" />
                     </div>
-                    <h3 className="font-headline text-3xl font-bold">{top3[0]?.name || "Champion"}</h3>
+                    <h3 className="font-headline text-3xl font-bold truncate px-4">{top3[0]?.name || "Champion"}</h3>
                     <div className="mt-4">
                       <p className="text-7xl font-headline font-bold">{top3[0]?.totalPoints || 0}</p>
                       <p className="text-xs font-bold opacity-80 uppercase tracking-widest">POINTS</p>
@@ -107,7 +108,9 @@ export default function ClassementPage() {
                     <div className="w-12 h-12 bg-white/40 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Medal className="h-6 w-6 text-orange-400" />
                     </div>
-                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e]">{top3[2]?.name || "En attente..."}</h3>
+                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4">
+                      {top3[2]?.name || "En attente..."}
+                    </h3>
                     <div className="mt-2">
                       <p className="text-4xl font-headline font-bold text-[#1e4e6e]">{top3[2]?.totalPoints || 0}</p>
                       <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">POINTS</p>
@@ -131,24 +134,28 @@ export default function ClassementPage() {
 
                    <div className="grid md:grid-cols-12 gap-10 items-center">
                       <div className="md:col-span-5">
-                         <div className="relative aspect-square rounded-[2rem] overflow-hidden border-8 border-slate-800 shadow-2xl">
-                            <Image 
-                              src={recordCatch?.imageUrl || 'https://picsum.photos/seed/bigfish/800/800'} 
-                              alt="Big Fish Record" 
-                              fill 
-                              className="object-cover"
-                            />
+                         <div className="relative aspect-square rounded-[2rem] overflow-hidden border-8 border-slate-800 shadow-2xl bg-slate-800 flex items-center justify-center">
+                            {recordCatch?.imageUrl ? (
+                              <Image 
+                                src={recordCatch.imageUrl} 
+                                alt="Big Fish Record" 
+                                fill 
+                                className="object-cover"
+                              />
+                            ) : (
+                              <Fish className="h-20 w-20 text-slate-700" />
+                            )}
                          </div>
                       </div>
                       
                       <div className="md:col-span-7 grid grid-cols-2 gap-6">
                          <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">PÊCHEUR</p>
-                            <p className="text-3xl font-headline font-bold">{recordCatch?.anglerName || "À venir..."}</p>
+                            <p className="text-2xl font-headline font-bold truncate">{recordCatch?.anglerName || "À venir..."}</p>
                          </div>
                          <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">ESPÈCE</p>
-                            <p className="text-3xl font-headline font-bold text-primary">{recordCatch?.fishName || "---"}</p>
+                            <p className="text-2xl font-headline font-bold text-primary truncate">{recordCatch?.fishName || "---"}</p>
                          </div>
                          <div className="bg-[#1e293b] p-8 rounded-3xl border border-slate-700/50">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">GRANDEUR</p>
