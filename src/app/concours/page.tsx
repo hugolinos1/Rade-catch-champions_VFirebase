@@ -14,8 +14,8 @@ import { useState, useRef, useMemo } from 'react';
 import { Catch, UserProfile, FishSpecies, Contest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useStorage } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { collection, query, orderBy, limit, where, doc, increment } from 'firebase/firestore';
+import { addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 export default function ConcoursPage() {
@@ -102,6 +102,7 @@ export default function ConcoursPage() {
       const fisher = allUsers?.find(u => u.id === selectedFisherman);
       const fish = species?.find(s => s.id === selectedFishId);
       const sizeNum = parseFloat(length);
+      const pointsCalculated = (fish?.pointsPerCm || 10) * sizeNum;
 
       const newCatch: Omit<Catch, 'id'> = {
         anglerId: selectedFisherman,
@@ -113,15 +114,23 @@ export default function ConcoursPage() {
         weight: parseFloat(weight) || 0,
         imageUrl: imageUrl,
         date: new Date().toISOString(),
-        points: (fish?.pointsPerCm || 10) * sizeNum,
-        status: 'pending',
+        points: pointsCalculated,
+        status: 'approved', // Default is Approved now
         location: location
       };
 
+      // Add catch
       const catchesCol = collection(firestore, 'catches');
       addDocumentNonBlocking(catchesCol, newCatch);
 
-      toast({ title: "Capture envoyée !", description: "Votre prise a été enregistrée avec succès." });
+      // Update user points and count immediately since it's approved by default
+      const userRef = doc(firestore, 'users', selectedFisherman);
+      updateDocumentNonBlocking(userRef, {
+        totalPoints: increment(pointsCalculated),
+        catchesCount: increment(1)
+      });
+
+      toast({ title: "Capture enregistrée !", description: "Votre prise a été validée et vos points ajoutés." });
       
       setLength('');
       setWeight('');
@@ -246,7 +255,7 @@ export default function ConcoursPage() {
 
                   <Button type="submit" className="w-full font-headline font-bold h-14 text-lg" disabled={isSubmitting || !previewUrl}>
                     {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-5 w-5" />}
-                    {isSubmitting ? "Envoi en cours..." : "Soumettre la capture"}
+                    {isSubmitting ? "Enregistrement..." : "Soumettre la capture"}
                   </Button>
                 </form>
               </CardContent>
@@ -277,8 +286,8 @@ export default function ConcoursPage() {
                           <p className="text-[11px] text-muted-foreground">{item.size} cm • {item.points} pts</p>
                         </div>
                         <div className="flex justify-between items-center">
-                          <Badge variant={item.status === 'approved' ? 'default' : 'secondary'} className="text-[9px] uppercase h-4 px-1">
-                            {item.status}
+                          <Badge variant={item.status === 'approved' ? 'default' : item.status === 'rejected' ? 'destructive' : 'secondary'} className="text-[9px] uppercase h-4 px-1">
+                            {item.status === 'approved' ? 'Validé' : item.status === 'rejected' ? 'Refusé' : 'Attente'}
                           </Badge>
                           <span className="text-[10px] text-slate-400">{new Date(item.date).toLocaleDateString()}</span>
                         </div>
@@ -306,7 +315,7 @@ export default function ConcoursPage() {
                 <p>1. La photo doit être prise sur un mètre gradué officiel.</p>
                 <p>2. Le poisson doit être vivant lors de la photo.</p>
                 <p>3. Les points sont calculés selon l'espèce (Taille x Coefficient).</p>
-                <p>4. La validation par l'admin peut prendre jusqu'à 24h.</p>
+                <p>4. La validation par l'admin peut modifier le statut a posteriori.</p>
               </CardContent>
             </Card>
 

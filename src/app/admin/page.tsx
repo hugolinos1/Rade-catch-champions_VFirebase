@@ -47,7 +47,7 @@ import {
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useStorage } from '@/firebase';
-import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, increment } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { UserProfile, InvitationCode, Contest, Catch, FishSpecies } from '@/lib/types';
@@ -214,19 +214,49 @@ export default function AdminPage() {
   };
 
   // --- CATCH MANAGEMENT HANDLERS ---
-  const handleUpdateCatchStatus = (id: string, status: Catch['status']) => {
-    const catchRef = doc(firestore, 'catches', id);
-    updateDocumentNonBlocking(catchRef, { status });
+  const handleUpdateCatchStatus = (catchItem: Catch, newStatus: Catch['status']) => {
+    if (catchItem.status === newStatus) return;
+
+    const catchRef = doc(firestore, 'catches', catchItem.id);
+    updateDocumentNonBlocking(catchRef, { status: newStatus });
+
+    // Handle user points adjustment if the status changes between approved and not approved
+    const userRef = doc(firestore, 'users', catchItem.anglerId);
+    
+    if (catchItem.status === 'approved' && newStatus !== 'approved') {
+      // Was approved, now rejected or pending: remove points
+      updateDocumentNonBlocking(userRef, {
+        totalPoints: increment(-catchItem.points),
+        catchesCount: increment(-1)
+      });
+    } else if (catchItem.status !== 'approved' && newStatus === 'approved') {
+      // Was not approved, now is: add points
+      updateDocumentNonBlocking(userRef, {
+        totalPoints: increment(catchItem.points),
+        catchesCount: increment(1)
+      });
+    }
+
     toast({ 
-      title: status === 'approved' ? "Capture approuvée" : "Capture refusée",
-      variant: status === 'approved' ? "default" : "destructive"
+      title: newStatus === 'approved' ? "Capture approuvée" : "Capture refusée",
+      variant: newStatus === 'approved' ? "default" : "destructive"
     });
   };
 
-  const handleDeleteCatch = (id: string) => {
+  const handleDeleteCatch = (catchItem: Catch) => {
     if (!confirm("Supprimer définitivement cette capture ?")) return;
-    const catchRef = doc(firestore, 'catches', id);
+    const catchRef = doc(firestore, 'catches', catchItem.id);
     deleteDocumentNonBlocking(catchRef);
+
+    // If the catch was approved, remove its points from the user
+    if (catchItem.status === 'approved') {
+      const userRef = doc(firestore, 'users', catchItem.anglerId);
+      updateDocumentNonBlocking(userRef, {
+        totalPoints: increment(-catchItem.points),
+        catchesCount: increment(-1)
+      });
+    }
+
     toast({ title: "Capture supprimée" });
   };
 
@@ -237,6 +267,9 @@ export default function AdminPage() {
   const handleSaveCatch = () => {
     if (!editingCatch || !isAdmin) return;
     setIsCatchUpdating(true);
+
+    const oldCatch = catches?.find(c => c.id === editingCatch.id);
+    if (!oldCatch) return;
 
     // Recalculate points based on selected species and size
     const fish = species?.find(s => s.id === editingCatch.fishId);
@@ -251,6 +284,15 @@ export default function AdminPage() {
       location: editingCatch.location,
       points: updatedPoints
     });
+
+    // If approved, update user's total points with the difference
+    if (oldCatch.status === 'approved') {
+      const userRef = doc(firestore, 'users', oldCatch.anglerId);
+      const pointsDiff = updatedPoints - oldCatch.points;
+      updateDocumentNonBlocking(userRef, {
+        totalPoints: increment(pointsDiff)
+      });
+    }
 
     setTimeout(() => {
       setIsCatchUpdating(false);
@@ -648,7 +690,7 @@ export default function AdminPage() {
                           <Button 
                             size="sm" 
                             className="bg-green-600 hover:bg-green-700 font-bold gap-2"
-                            onClick={() => handleUpdateCatchStatus(c.id, 'approved')}
+                            onClick={() => handleUpdateCatchStatus(c, 'approved')}
                           >
                             <Check className="h-4 w-4" /> Approuver
                           </Button>
@@ -658,7 +700,7 @@ export default function AdminPage() {
                             variant="outline"
                             size="sm" 
                             className="text-red-500 hover:text-red-600 border-red-100 hover:bg-red-50 font-bold gap-2"
-                            onClick={() => handleUpdateCatchStatus(c.id, 'rejected')}
+                            onClick={() => handleUpdateCatchStatus(c, 'rejected')}
                           >
                             <X className="h-4 w-4" /> Refuser
                           </Button>
@@ -675,7 +717,7 @@ export default function AdminPage() {
                           variant="ghost"
                           size="sm" 
                           className="text-slate-300 hover:text-destructive ml-auto"
-                          onClick={() => handleDeleteCatch(c.id)}
+                          onClick={() => handleDeleteCatch(c)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
