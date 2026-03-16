@@ -8,13 +8,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Send, History, Scale, Anchor, Loader2, Camera, MapPin, X } from 'lucide-react';
+import { Send, History, Scale, Anchor, Loader2, Camera, MapPin, X, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
 import { Catch, UserProfile, FishSpecies, Contest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useStorage } from '@/firebase';
-import { collection, query, orderBy, limit, where, doc } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -38,7 +38,7 @@ export default function ConcoursPage() {
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const recentCatchesQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'catches'), orderBy('date', 'desc'), limit(10)), 
+    query(collection(firestore, 'catches'), orderBy('date', 'desc'), limit(5)), 
   [firestore]);
 
   const { data: activeContests } = useCollection<Contest>(activeContestQuery);
@@ -251,24 +251,30 @@ export default function ConcoursPage() {
 
             <div className="space-y-4">
               <h2 className="font-headline text-2xl font-bold flex items-center gap-2">
-                <History className="h-6 w-6 text-primary" /> Vos Dernières Prises
+                <History className="h-6 w-6 text-primary" /> Dernières Prises
               </h2>
               {loadingCatches ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin h-8 w-8 text-slate-200" /></div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {recentCatches?.filter(c => c.anglerId === currentUser?.uid).map((item) => (
-                    <Card key={item.id} className="overflow-hidden border-none shadow-sm flex h-32 bg-white">
+                  {recentCatches?.map((item) => (
+                    <Card key={item.id} className="overflow-hidden border-none shadow-sm flex h-32 bg-white group hover:shadow-md transition-shadow">
                       <div className="relative w-32 h-full shrink-0">
                         <Image src={item.imageUrl || 'https://picsum.photos/seed/catch/400/300'} alt={item.fishName} fill className="object-cover" />
                       </div>
                       <div className="flex-1 p-4 flex flex-col justify-between overflow-hidden">
                         <div>
-                          <p className="text-primary font-headline font-bold truncate">{item.fishName}</p>
+                          <div className="flex items-center gap-1 mb-1">
+                            <UserIcon className="h-3 w-3 text-slate-400" />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase truncate">
+                              {item.anglerName}
+                            </span>
+                          </div>
+                          <p className="text-primary font-headline font-bold truncate leading-tight">{item.fishName}</p>
                           <p className="text-[11px] text-muted-foreground">{item.size} cm • {item.points} pts</p>
                         </div>
                         <div className="flex justify-between items-center">
-                          <Badge variant={item.status === 'approved' ? 'default' : 'secondary'} className="text-[9px] uppercase">
+                          <Badge variant={item.status === 'approved' ? 'default' : 'secondary'} className="text-[9px] uppercase h-4 px-1">
                             {item.status}
                           </Badge>
                           <span className="text-[10px] text-slate-400">{new Date(item.date).toLocaleDateString()}</span>
@@ -276,9 +282,9 @@ export default function ConcoursPage() {
                       </div>
                     </Card>
                   ))}
-                  {recentCatches?.filter(c => c.anglerId === currentUser?.uid).length === 0 && (
+                  {(!recentCatches || recentCatches.length === 0) && (
                     <p className="text-muted-foreground italic col-span-2 text-center py-8 bg-white rounded-xl border-dashed border-2">
-                      Vous n'avez pas encore enregistré de captures pour ce concours.
+                      Aucune capture enregistrée pour le moment.
                     </p>
                   )}
                 </div>
