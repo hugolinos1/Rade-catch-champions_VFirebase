@@ -123,14 +123,16 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
+    // Timeout de sécurité pour éviter l'icône tournante infinie en cas de blocage CORS
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('TIMEOUT')), 30000)
+      setTimeout(() => reject(new Error('TIMEOUT_CORS')), 25000)
     );
 
     try {
       const storagePath = `species/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
       
+      // On lance l'upload et on attend soit la réussite, soit le timeout
       const snapshot = await Promise.race([
         uploadBytes(storageRef, file),
         timeoutPromise
@@ -151,8 +153,8 @@ export default function GuidePage() {
       console.error("Storage Error:", error);
       let message = "Une erreur est survenue lors du chargement.";
       
-      if (error.message === 'TIMEOUT') {
-        message = "Délai dépassé. Si vous avez créé votre bucket manuellement, vérifiez les réglages CORS via gsutil.";
+      if (error.message === 'TIMEOUT_CORS') {
+        message = "Le serveur ne répond pas. Vérifiez que la commande CORS 'gsutil' a bien été appliquée sur votre bucket.";
       } else if (error.code === 'storage/unauthorized') {
         message = "Accès refusé. Vérifiez vos règles de sécurité Storage.";
       }
