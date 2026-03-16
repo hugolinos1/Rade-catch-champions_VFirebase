@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from 'react';
@@ -52,7 +53,6 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      // 1. Vérifier le code d'invitation
       const codesRef = collection(firestore, 'registration_codes');
       const q = query(codesRef, where('code', '==', inviteCode.toUpperCase()), where('isUsed', '==', false));
       const querySnapshot = await getDocs(q);
@@ -62,15 +62,11 @@ export default function AuthPage() {
       }
 
       const codeDoc = querySnapshot.docs[0];
-
-      // 2. Créer l'utilisateur
       const userCredential = await createUserWithEmailAndPassword(auth, email, regPassword);
       const user = userCredential.user;
 
-      // 3. Mettre à jour le profil Firebase
       await updateProfile(user, { displayName: name });
 
-      // 4. Créer le document utilisateur dans Firestore
       await setDoc(doc(firestore, 'users', user.uid), {
         id: user.uid,
         name: name,
@@ -81,7 +77,6 @@ export default function AuthPage() {
         createdAt: new Date().toISOString()
       });
 
-      // 5. Marquer le code comme utilisé
       await updateDoc(doc(firestore, 'registration_codes', codeDoc.id), {
         isUsed: true,
         usedBy: user.uid,
