@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -26,7 +27,7 @@
         "scientificName": { "type": "string" },
         "description": { "type": "string" },
         "minSize": { "type": "number" },
-        "pointsPerCm": { "type": "number" },
+        "pointsPerCm": { "type": "number", "description": "Coefficient de points par cm (défaut 10)" },
         "imageUrl": { "type": "string", "format": "uri" }
       }
     },

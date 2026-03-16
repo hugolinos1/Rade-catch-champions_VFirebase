@@ -102,7 +102,10 @@ export default function ConcoursPage() {
       const fisher = allUsers?.find(u => u.id === selectedFisherman);
       const fish = species?.find(s => s.id === selectedFishId);
       const sizeNum = parseFloat(length);
-      const pointsCalculated = (fish?.pointsPerCm || 10) * sizeNum;
+      
+      // Use the pointsPerCm from the fish species, default to 10 if not set
+      const pointsPerCm = fish?.pointsPerCm ?? 10;
+      const pointsCalculated = pointsPerCm * sizeNum;
 
       const newCatch: Omit<Catch, 'id'> = {
         anglerId: selectedFisherman,
@@ -115,7 +118,7 @@ export default function ConcoursPage() {
         imageUrl: imageUrl,
         date: new Date().toISOString(),
         points: pointsCalculated,
-        status: 'approved', // Default is Approved now
+        status: 'approved', // Default is Approved
         location: location
       };
 

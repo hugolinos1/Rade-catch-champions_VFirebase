@@ -39,7 +39,8 @@ import {
   Upload,
   Zap,
   X,
-  Trophy
+  Trophy,
+  Coins
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef, useMemo } from 'react';
@@ -87,6 +88,7 @@ export default function GuidePage() {
       ...fish,
       imageUrl: fish.image || fish.imageUrl || '',
       minSize: fish.legalSize || fish.minSize || 0,
+      pointsPerCm: fish.pointsPerCm ?? 10,
       bonusPoints: (fish.pointsSystem || fish.bonusPoints || []).map(p => ({
         threshold: p.minSize || p.threshold || 0,
         points: p.points || 0
@@ -136,6 +138,7 @@ export default function GuidePage() {
       id: docId,
       legalSize: editingFish.minSize,
       image: editingFish.imageUrl,
+      pointsPerCm: editingFish.pointsPerCm || 10,
       pointsSystem: editingFish.bonusPoints?.map(p => ({
         minSize: p.threshold,
         points: p.points
@@ -388,9 +391,9 @@ export default function GuidePage() {
                       <CardTitle className="text-lg font-bold text-[#1e4e6e]">Taille & Points</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-1 text-sm">
-                      <p><span className="font-bold">Coefficient:</span> {viewingFish.pointsPerCm} pts/cm</p>
-                      <p><span className="font-bold">Maille légale:</span> {viewingFish.minSize} cm</p>
-                      <p><span className="font-bold">Taille moyenne:</span> {viewingFish.averageSize || 'N/A'}</p>
+                      <p className="flex items-center gap-2"><Coins className="h-3 w-3 text-slate-400" /> <span className="font-bold">Coefficient:</span> {viewingFish.pointsPerCm} pts/cm</p>
+                      <p className="flex items-center gap-2"><Ruler className="h-3 w-3 text-slate-400" /> <span className="font-bold">Maille légale:</span> {viewingFish.minSize} cm</p>
+                      <p className="flex items-center gap-2"><Target className="h-3 w-3 text-slate-400" /> <span className="font-bold">Taille moyenne:</span> {viewingFish.averageSize || 'N/A'}</p>
                     </CardContent>
                   </Card>
 
@@ -485,7 +488,7 @@ export default function GuidePage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-slate-600 font-bold">Points par cm</Label>
-                    <Input className="bg-slate-50 border-slate-200" type="number" value={editingFish.pointsPerCm} onChange={e => setEditingFish({...editingFish, pointsPerCm: parseInt(e.target.value) || 0})} />
+                    <Input className="bg-slate-50 border-slate-200" type="number" placeholder="Défaut: 10" value={editingFish.pointsPerCm} onChange={e => setEditingFish({...editingFish, pointsPerCm: parseInt(e.target.value) || 0})} />
                   </div>
 
                   <div className="space-y-1.5">

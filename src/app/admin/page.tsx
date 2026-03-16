@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -272,7 +273,8 @@ export default function AdminPage() {
     if (!oldCatch) return;
 
     const fish = species?.find(s => s.id === editingCatch.fishId);
-    const updatedPoints = (fish?.pointsPerCm || 10) * editingCatch.size;
+    const pointsPerCm = fish?.pointsPerCm ?? 10;
+    const updatedPoints = pointsPerCm * editingCatch.size;
 
     const catchRef = doc(firestore, 'catches', editingCatch.id);
     updateDocumentNonBlocking(catchRef, {
