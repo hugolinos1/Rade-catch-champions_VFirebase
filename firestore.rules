@@ -18,8 +18,9 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow get: if isSignedIn();
-      allow list: if isAdmin();
+      // Autorise la lecture individuelle et le listage pour tous les membres connectés
+      // indispensable pour sélectionner un pêcheur dans le module Concours
+      allow get, list: if isSignedIn();
       allow create, update: if isOwner(userId) || isAdmin();
       allow delete: if isAdmin();
     }
@@ -46,7 +47,7 @@ service cloud.firestore {
     }
 
     match /registration_codes/{codeId} {
-      // Permet la lecture pour vérifier le code lors de l'inscription
+      // Lecture autorisée pour vérification lors de l'inscription
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
