@@ -385,12 +385,12 @@ export default function GuidePage() {
                   <Card className="border-none bg-white shadow-sm rounded-xl">
                     <CardHeader className="pb-2 flex flex-row items-center gap-2">
                       <Ruler className="h-5 w-5 text-orange-400" />
-                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Taille</CardTitle>
+                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Taille & Points</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-1 text-sm">
+                      <p><span className="font-bold">Coefficient:</span> {viewingFish.pointsPerCm} pts/cm</p>
                       <p><span className="font-bold">Maille légale:</span> {viewingFish.minSize} cm</p>
                       <p><span className="font-bold">Taille moyenne:</span> {viewingFish.averageSize || 'N/A'}</p>
-                      <p><span className="font-bold">Taille maximale:</span> {viewingFish.maxSize || 'N/A'} cm</p>
                     </CardContent>
                   </Card>
 
@@ -484,6 +484,15 @@ export default function GuidePage() {
                     <Input className="bg-slate-50 border-slate-200" type="number" value={editingFish.minSize} onChange={e => setEditingFish({...editingFish, minSize: parseInt(e.target.value) || 0})} />
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Points par cm</Label>
+                    <Input className="bg-slate-50 border-slate-200" type="number" value={editingFish.pointsPerCm} onChange={e => setEditingFish({...editingFish, pointsPerCm: parseInt(e.target.value) || 0})} />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-600 font-bold">Taille Moyenne (ex: 15-30cm)</Label>
+                    <Input className="bg-slate-50 border-slate-200" value={editingFish.averageSize} onChange={e => setEditingFish({...editingFish, averageSize: e.target.value})} />
+                  </div>
+                  <div className="space-y-1.5">
                     <Label className="text-slate-600 font-bold">Rareté</Label>
                     <Select value={editingFish.rarity} onValueChange={(v: any) => setEditingFish({...editingFish, rarity: v})}>
                       <SelectTrigger className="bg-slate-50 border-slate-200"><SelectValue /></SelectTrigger>
@@ -493,15 +502,6 @@ export default function GuidePage() {
                         <SelectItem value="Très rare">Très rare</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-slate-600 font-bold">Taille Moyenne (ex: 15-30cm)</Label>
-                    <Input className="bg-slate-50 border-slate-200" value={editingFish.averageSize} onChange={e => setEditingFish({...editingFish, averageSize: e.target.value})} />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-slate-600 font-bold">Taille Max (cm)</Label>
-                    <Input className="bg-slate-50 border-slate-200" type="number" value={editingFish.maxSize} onChange={e => setEditingFish({...editingFish, maxSize: parseInt(e.target.value) || 0})} />
                   </div>
                 </div>
 
@@ -551,7 +551,7 @@ export default function GuidePage() {
                 {/* Système de Points Section */}
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-slate-600 font-bold">Système de Points</Label>
+                    <Label className="text-slate-600 font-bold">Système de Points Bonus</Label>
                     <Button variant="outline" size="sm" onClick={addPalier} className="h-7 text-xs bg-slate-50">
                       <Plus className="h-3 w-3 mr-1" /> Palier
                     </Button>
@@ -559,8 +559,8 @@ export default function GuidePage() {
                   <div className="space-y-2">
                     {editingFish.bonusPoints?.map((bp, idx) => (
                       <div key={idx} className="flex gap-3 items-center">
-                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" value={bp.threshold} onChange={(e) => updatePalier(idx, 'threshold', parseInt(e.target.value) || 0)} />
-                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" value={bp.points} onChange={(e) => updatePalier(idx, 'points', parseInt(e.target.value) || 0)} />
+                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" placeholder="Seuil cm" value={bp.threshold} onChange={(e) => updatePalier(idx, 'threshold', parseInt(e.target.value) || 0)} />
+                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" placeholder="Points" value={bp.points} onChange={(e) => updatePalier(idx, 'points', parseInt(e.target.value) || 0)} />
                         <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removePalier(idx)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     ))}
