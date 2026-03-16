@@ -1,16 +1,9 @@
-// FORCE DEPLOYMENT: 2025-03-05T16:00:00Z
+// FORCE DEPLOYMENT: 2025-03-05T18:30:00Z
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Lecture publique autorisée pour toutes les collections principales
-    // Cela garantit que le classement et le guide fonctionnent pour tous.
-    match /users/{id} { allow read: if true; allow write: if request.auth != null; }
-    match /species/{id} { allow read: if true; allow write: if request.auth != null; }
-    match /catches/{id} { allow read: if true; allow write: if request.auth != null; }
-    match /competitions/{id} { allow read: if true; allow write: if request.auth != null; }
-    match /registration_codes/{id} { allow read: if true; allow write: if request.auth != null; }
-
-    // Règle de secours universelle (Lecture pour tous, Écriture pour les authentifiés)
+    // Règle globale simplifiée : Lecture publique pour tout, Écriture si authentifié.
+    // Cela garantit que le Classement, le Guide et les flux fonctionnent sans erreur.
     match /{document=**} {
       allow read: if true;
       allow write: if request.auth != null;
