@@ -1,10 +1,10 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Key, 
   Users, 
@@ -12,11 +12,12 @@ import {
   Trash2, 
   Plus, 
   Loader2,
-  ShieldCheck
+  ShieldCheck,
+  Lock
 } from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc } from '@/firebase';
 import { doc, collection, query, where } from 'firebase/firestore';
 import { addDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { UserProfile, InvitationCode } from '@/lib/types';
@@ -25,10 +26,17 @@ import { cn } from '@/lib/utils';
 export default function AdminPage() {
   const { toast } = useToast();
   const firestore = useFirestore();
+  const { user: authUser } = useUser();
   const [activeTab, setActiveTab] = useState('access');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Queries
+  // Fetch current user profile to check role
+  const userDocRef = useMemoFirebase(() => 
+    authUser ? doc(firestore, 'users', authUser.uid) : null, 
+  [firestore, authUser]);
+  const { data: profile, isLoading: loadingProfile } = useDoc<UserProfile>(userDocRef);
+
+  // Queries for admin data
   const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const activeCodesQuery = useMemoFirebase(() => 
     query(collection(firestore, 'registration_codes'), where('isUsed', '==', false)), 
@@ -37,7 +45,10 @@ export default function AdminPage() {
   const { data: users, isLoading: loadingUsers } = useCollection<UserProfile>(usersQuery);
   const { data: activeCodes, isLoading: loadingCodes } = useCollection<InvitationCode>(activeCodesQuery);
 
+  const isAdmin = profile?.role === 'admin';
+
   const handleGenerateCode = () => {
+    if (!isAdmin) return;
     setIsGenerating(true);
     const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     
@@ -57,6 +68,7 @@ export default function AdminPage() {
   };
 
   const handleDeleteCode = (id: string) => {
+    if (!isAdmin) return;
     const docRef = doc(firestore, 'registration_codes', id);
     deleteDocumentNonBlocking(docRef);
     toast({ title: "Code supprimé" });
@@ -68,6 +80,40 @@ export default function AdminPage() {
     { id: 'captures', label: 'Gestion des Captures' },
     { id: 'guide', label: 'Guide des Poissons' },
   ];
+
+  if (loadingProfile) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navigation />
+        <div className="flex items-center justify-center h-[calc(100vh-64px)]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Navigation />
+        <main className="container mx-auto px-4 py-20 max-w-2xl text-center">
+          <div className="bg-white p-12 rounded-3xl shadow-sm border border-slate-200">
+            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Lock className="h-10 w-10 text-red-500" />
+            </div>
+            <h1 className="text-3xl font-headline font-bold text-slate-900 mb-4">Accès Restreint</h1>
+            <p className="text-slate-500 mb-8 leading-relaxed">
+              Désolé, cette section est réservée aux administrateurs de la Rade Catch Champions. 
+              Contactez l'organisation si vous pensez qu'il s'agit d'une erreur.
+            </p>
+            <Button asChild className="font-bold px-8">
+              <a href="/">Retour à l'accueil</a>
+            </Button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20 md:pb-0">
