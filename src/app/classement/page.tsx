@@ -37,13 +37,13 @@ export default function ClassementPage() {
   const recordCatch = bigFishes?.[0];
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] pb-20">
+    <div className="min-h-screen bg-[#F8FAFC] pb-20">
       <Navigation />
       
       <main className="container mx-auto px-4 py-12 max-w-6xl">
         {/* Page Header */}
         <header className="mb-16 text-center">
-          <h1 className="font-headline text-5xl md:text-6xl font-bold text-[#0a3d62] mb-4 uppercase tracking-tight">
+          <h1 className="font-headline text-5xl md:text-6xl font-bold text-[#0A3D62] mb-4 uppercase tracking-tight">
             Tableau d'Honneur
           </h1>
           <div className="flex items-center justify-center gap-4">
@@ -67,20 +67,20 @@ export default function ClassementPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto px-4">
               {/* 2nd Place */}
               <div className="order-2 md:order-1">
-                <Card className="border-none shadow-xl bg-[#d1e9f0] rounded-[2.5rem] overflow-hidden text-center h-[340px] flex flex-col justify-center transition-all hover:translate-y-[-8px]">
+                <Card className="border-none shadow-xl bg-[#D1E9F0] rounded-[2.5rem] overflow-hidden text-center h-[340px] flex flex-col justify-center transition-all hover:translate-y-[-8px]">
                   <CardContent className="pt-8">
                     <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
                       <Medal className="h-10 w-10 text-slate-400" />
                     </div>
-                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4 mb-2">
+                    <h3 className="font-headline text-2xl font-bold text-[#1E4E6E] truncate px-4 mb-2">
                       {top3[1]?.name || "---"}
                     </h3>
                     <div className="mt-2">
-                      <p className="text-6xl font-headline font-bold text-[#1e4e6e]">{top3[1]?.totalPoints || 0}</p>
-                      <p className="text-[10px] font-bold text-[#1e4e6e]/60 uppercase tracking-widest">POINTS TOTAL</p>
+                      <p className="text-6xl font-headline font-bold text-[#1E4E6E]">{top3[1]?.totalPoints || 0}</p>
+                      <p className="text-[10px] font-bold text-[#1E4E6E]/60 uppercase tracking-widest">POINTS TOTAL</p>
                     </div>
                     <div className="mt-8 pt-6 border-t border-white/30">
-                       <p className="text-xs font-bold text-[#1e4e6e]/70">{top3[1]?.catchesCount || 0} CAPTURES VALIDÉES</p>
+                       <p className="text-xs font-bold text-[#1E4E6E]/70">{top3[1]?.catchesCount || 0} CAPTURES VALIDÉES</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -88,7 +88,7 @@ export default function ClassementPage() {
 
               {/* 1st Place - GOLD */}
               <div className="order-1 md:order-2 scale-105 md:scale-110 z-10">
-                <Card className="border-none shadow-2xl bg-[#ff8a50] rounded-[3rem] overflow-hidden text-center h-[450px] flex flex-col justify-center relative border-4 border-white/20">
+                <Card className="border-none shadow-2xl bg-[#FF8A50] rounded-[3rem] overflow-hidden text-center h-[450px] flex flex-col justify-center relative border-4 border-white/20">
                   <div className="absolute top-6 right-6 opacity-10">
                     <Crown className="h-32 w-32 text-white" />
                   </div>
@@ -112,20 +112,20 @@ export default function ClassementPage() {
 
               {/* 3rd Place */}
               <div className="order-3">
-                <Card className="border-none shadow-xl bg-[#d1e9f0] rounded-[2.5rem] overflow-hidden text-center h-[300px] flex flex-col justify-center transition-all hover:translate-y-[-8px]">
+                <Card className="border-none shadow-xl bg-[#D1E9F0] rounded-[2.5rem] overflow-hidden text-center h-[300px] flex flex-col justify-center transition-all hover:translate-y-[-8px]">
                   <CardContent className="pt-8">
                     <div className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                      <Medal className="h-10 w-10 text-[#cd7f32]" />
+                      <Medal className="h-10 w-10 text-[#CD7F32]" />
                     </div>
-                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e] truncate px-4 mb-2">
+                    <h3 className="font-headline text-2xl font-bold text-[#1E4E6E] truncate px-4 mb-2">
                       {top3[2]?.name || "---"}
                     </h3>
                     <div className="mt-2">
-                      <p className="text-5xl font-headline font-bold text-[#1e4e6e]">{top3[2]?.totalPoints || 0}</p>
-                      <p className="text-[10px] font-bold text-[#1e4e6e]/60 uppercase tracking-widest">POINTS TOTAL</p>
+                      <p className="text-5xl font-headline font-bold text-[#1E4E6E]">{top3[2]?.totalPoints || 0}</p>
+                      <p className="text-[10px] font-bold text-[#1E4E6E]/60 uppercase tracking-widest">POINTS TOTAL</p>
                     </div>
                     <div className="mt-6 pt-6 border-t border-white/30">
-                       <p className="text-xs font-bold text-[#1e4e6e]/70">{top3[2]?.catchesCount || 0} CAPTURES</p>
+                       <p className="text-xs font-bold text-[#1E4E6E]/70">{top3[2]?.catchesCount || 0} CAPTURES</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -134,7 +134,7 @@ export default function ClassementPage() {
 
             {/* 2. BIG FISH RECORD SECTION */}
             <div className="max-w-5xl mx-auto px-4">
-              <Card className="bg-[#0f172a] text-white border-none rounded-[3.5rem] shadow-2xl overflow-hidden relative group">
+              <Card className="bg-[#0F172A] text-white border-none rounded-[3.5rem] shadow-2xl overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-8 opacity-5">
                   <Fish className="h-80 w-80 rotate-12" />
                 </div>
@@ -142,7 +142,7 @@ export default function ClassementPage() {
                 <CardContent className="p-12 md:p-20 relative z-10">
                    <div className="flex items-center gap-6 mb-16">
                      <div className="p-4 bg-yellow-400 rounded-[1.5rem] shadow-lg shadow-yellow-400/30">
-                       <Star className="h-10 w-10 text-[#0f172a] fill-[#0f172a]" />
+                       <Star className="h-10 w-10 text-[#0F172A] fill-[#0F172A]" />
                      </div>
                      <h2 className="font-headline text-4xl font-bold italic tracking-tighter uppercase">LE RECORD : BIG FISH</h2>
                    </div>
@@ -229,7 +229,7 @@ export default function ClassementPage() {
                                </div>
                                <div className="text-right min-w-[160px]">
                                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">SCORE TOTAL</p>
-                                  <p className="text-5xl font-headline font-bold text-[#0a3d62]">{user.totalPoints || 0}</p>
+                                  <p className="text-5xl font-headline font-bold text-[#0A3D62]">{user.totalPoints || 0}</p>
                                </div>
                             </div>
                          </div>
