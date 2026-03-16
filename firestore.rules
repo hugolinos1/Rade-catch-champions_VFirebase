@@ -9,7 +9,7 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (
         exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
       );
     }
 
@@ -29,18 +29,18 @@ service cloud.firestore {
     }
 
     match /species/{speciesId} {
-      allow read: if true; 
+      allow read, get, list: if true; 
       allow write: if isAdmin();
     }
 
     match /competitions/{competitionId} {
-      allow read: if true;
+      allow read, get, list: if true;
       allow write: if isAdmin();
     }
 
     match /catches/{catchId} {
-      // Autorisation simplifiée pour la lecture publique des captures (classement et flux)
-      allow read: if true;
+      // Autorisation explicite pour la lecture publique des captures (classement et flux)
+      allow get, list: if true;
       // Seuls les membres connectés peuvent enregistrer une prise
       allow create: if isSignedIn();
       // Modification réservée à l'auteur ou à l'admin
@@ -48,9 +48,10 @@ service cloud.firestore {
     }
 
     match /registration_codes/{codeId} {
+      // Permission de lecture unitaire pour la vérification lors de l'inscription
       allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow write: if isAdmin();
+      // Listage et écriture réservés aux admins
+      allow list, write: if isAdmin();
     }
   }
 }
