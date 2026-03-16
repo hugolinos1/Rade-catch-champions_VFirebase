@@ -58,7 +58,7 @@ export default function GuidePage() {
   const { toast } = useToast();
   const firestore = useFirestore();
   const storage = useStorage();
-  const { user } = user;
+  const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
