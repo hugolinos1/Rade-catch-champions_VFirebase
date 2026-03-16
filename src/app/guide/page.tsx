@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -22,12 +21,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon } from 'lucide-react';
+import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FishSpecies, BonusPointThreshold } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
 
 const EMPTY_FISH: FishSpecies = {
   id: '',
@@ -130,6 +130,7 @@ export default function GuidePage() {
   
   const [editingFish, setEditingFish] = useState<FishSpecies | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
 
   const filteredFish = fishList.filter(fish => 
     fish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -168,6 +169,49 @@ export default function GuidePage() {
     
     setIsDialogOpen(false);
     setEditingFish(null);
+  };
+
+  const handleAIGenerate = async () => {
+    if (!editingFish?.name) {
+      toast({
+        variant: "destructive",
+        title: "Nom requis",
+        description: "Veuillez donner au moins un nom à l'espèce pour que l'IA puisse travailler."
+      });
+      return;
+    }
+
+    setIsAILoading(true);
+    try {
+      const result = await generateFishDescription({
+        fishName: editingFish.name,
+        scientificName: editingFish.scientificName,
+        habitat: editingFish.habitat,
+        diet: editingFish.diet,
+        averageSize: editingFish.averageSize,
+        keyFeatures: editingFish.keyFeatures,
+        fishingTips: editingFish.fishingTips,
+        existingDescription: editingFish.description
+      });
+      
+      setEditingFish(prev => prev ? {
+        ...prev,
+        description: result.description
+      } : null);
+
+      toast({
+        title: "IA Succès",
+        description: "La description a été générée/enrichie avec succès."
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur IA",
+        description: "Impossible de contacter l'assistant IA."
+      });
+    } finally {
+      setIsAILoading(false);
+    }
   };
 
   const addTechnique = () => {
@@ -366,10 +410,25 @@ export default function GuidePage() {
         {/* Edit/Create Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
+            <DialogHeader className="flex flex-row items-center justify-between">
               <DialogTitle className="font-headline text-2xl">
                 {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
               </DialogTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="mr-6 border-primary/20 hover:bg-primary/5 text-primary"
+                onClick={handleAIGenerate}
+                disabled={isAILoading}
+              >
+                {isAILoading ? (
+                  "Enrichissement..."
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" /> IA Enrichir
+                  </>
+                )}
+              </Button>
             </DialogHeader>
             
             {editingFish && (
@@ -434,11 +493,15 @@ export default function GuidePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <Label className="flex items-center gap-2">
+                    Description 
+                    <Badge variant="outline" className="text-[10px] font-normal opacity-70">Enrichissable via le bouton IA haut</Badge>
+                  </Label>
                   <Textarea 
-                    className="min-h-[100px]"
+                    className="min-h-[120px] leading-relaxed"
                     value={editingFish.description} 
                     onChange={e => setEditingFish({...editingFish, description: e.target.value})}
+                    placeholder="Détails sur l'espèce, sa biologie..."
                   />
                 </div>
 

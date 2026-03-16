@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -6,10 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
 import { 
   Settings, 
   Users, 
@@ -20,39 +16,15 @@ import {
   Edit, 
   CheckCircle, 
   XCircle, 
-  Sparkles,
   RefreshCcw,
   Key
 } from 'lucide-react';
 import { useState } from 'react';
-import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('contests');
-  
-  // AI Generation State
-  const [fishName, setFishName] = useState('');
-  const [generatedDescription, setGeneratedDescription] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  const handleGenerateAI = async () => {
-    if (!fishName) {
-      toast({ title: "Erreur", description: "Veuillez saisir un nom de poisson." });
-      return;
-    }
-    setIsGenerating(true);
-    try {
-      const result = await generateFishDescription({ fishName });
-      setGeneratedDescription(result.description);
-      toast({ title: "Description générée", description: "L'IA a rédigé une fiche détaillée." });
-    } catch (error) {
-      toast({ title: "Erreur AI", description: "Impossible de générer la description." });
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background pb-20 md:pb-0">
@@ -82,9 +54,6 @@ export default function AdminPage() {
             </TabsTrigger>
             <TabsTrigger value="users" className="data-[state=active]:bg-primary data-[state=active]:text-white">
               <Users className="h-4 w-4 mr-2" /> Utilisateurs
-            </TabsTrigger>
-            <TabsTrigger value="guide" className="data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Sparkles className="h-4 w-4 mr-2" /> Guide IA
             </TabsTrigger>
           </TabsList>
 
@@ -143,8 +112,7 @@ export default function AdminPage() {
                       <TableHead>Date</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                    </TableHeader>
                   <TableBody>
                     <TableRow>
                       <TableCell>Jean-Marc L.</TableCell>
@@ -222,66 +190,6 @@ export default function AdminPage() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          {/* Fish Guide IA */}
-          <TabsContent value="guide">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-headline flex items-center gap-2">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                  Assistant IA : Fiches Poissons
-                </CardTitle>
-                <CardDescription>Utilisez l'intelligence artificielle pour rédiger des descriptions captivantes pour le guide.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fish-ai-name">Nom du poisson</Label>
-                      <Input 
-                        id="fish-ai-name" 
-                        placeholder="Ex: Pagre Commun" 
-                        value={fishName}
-                        onChange={(e) => setFishName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fish-details">Informations supplémentaires (Optionnel)</Label>
-                      <Textarea placeholder="Indiquez l'habitat, les points..." />
-                    </div>
-                    <Button 
-                      className="w-full font-headline font-bold" 
-                      onClick={handleGenerateAI}
-                      disabled={isGenerating}
-                    >
-                      {isGenerating ? "Génération en cours..." : "Générer la description"}
-                    </Button>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label>Résultat Généré</Label>
-                    <div className="min-h-[250px] p-4 rounded-lg bg-muted/30 border-2 border-dashed flex flex-col">
-                      {generatedDescription ? (
-                        <>
-                          <div className="flex-1 text-sm font-body leading-relaxed">
-                            {generatedDescription}
-                          </div>
-                          <Button variant="outline" size="sm" className="mt-4 self-end">
-                            Utiliser cette fiche
-                          </Button>
-                        </>
-                      ) : (
-                        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground italic text-sm text-center">
-                          <Sparkles className="h-8 w-8 mb-2 opacity-20" />
-                          Le contenu généré s'affichera ici.
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </main>
