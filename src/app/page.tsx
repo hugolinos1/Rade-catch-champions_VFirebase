@@ -1,7 +1,7 @@
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Fish, Trophy, Anchor, ArrowRight, PlusCircle } from 'lucide-react';
+import { Fish, Trophy, Anchor, ArrowRight, CirclePlus } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -65,7 +65,7 @@ export default function Home() {
             <Card className="border-none shadow-lg bg-white/50 backdrop-blur">
               <CardHeader>
                 <div className="w-12 h-12 bg-accent/20 rounded-full flex items-center justify-center mb-4">
-                  <PlusCircle className="h-6 w-6 text-primary" />
+                  <CirclePlus className="h-6 w-6 text-primary" />
                 </div>
                 <CardTitle className="font-headline">Capture & Points</CardTitle>
                 <CardDescription>Prenez une photo, saisissez la taille, et notre système calcule vos points instantanément.</CardDescription>

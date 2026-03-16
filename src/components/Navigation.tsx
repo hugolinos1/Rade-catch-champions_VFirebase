@@ -1,15 +1,14 @@
-
 "use client"
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Fish, Trophy, PlusCircle, Settings, Home, LayoutDashboard } from 'lucide-react';
+import { Fish, Trophy, CirclePlus, Settings, Home } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Accueil', icon: Home },
   { href: '/guide', label: 'Guide', icon: Fish },
-  { href: '/concours', label: 'Concours', icon: PlusCircle },
+  { href: '/concours', label: 'Concours', icon: CirclePlus },
   { href: '/classement', label: 'Classement', icon: Trophy },
   { href: '/admin', label: 'Admin', icon: Settings },
 ];

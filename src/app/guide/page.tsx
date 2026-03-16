@@ -20,14 +20,16 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2 } from 'lucide-react';
+import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FishSpecies, BonusPointThreshold } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
+import { parseFishData } from '@/ai/flows/parse-fish-data-flow';
 import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 
@@ -56,17 +58,16 @@ export default function GuidePage() {
   const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   
-  // Real-time collection sync
   const fishQuery = useMemoFirebase(() => collection(firestore, 'fish_species'), [firestore]);
   const { data: fishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
 
-  // For now, let's assume any logged in user can edit for the MVP, 
-  // though in production we'd check against /roles_admin
   const isAdmin = !!user; 
   
   const [editingFish, setEditingFish] = useState<FishSpecies | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [isParseDialogOpen, setIsParseDialogOpen] = useState(false);
+  const [rawText, setRawText] = useState('');
 
   const filteredFish = (fishList || []).filter(fish => 
     fish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -149,6 +150,23 @@ export default function GuidePage() {
         title: "Erreur IA",
         description: "Impossible de contacter l'assistant IA."
       });
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const handleAIParse = async () => {
+    if (!rawText.trim()) return;
+    setIsAILoading(true);
+    try {
+      const result = await parseFishData(rawText);
+      setEditingFish({ ...EMPTY_FISH, ...result, id: editingFish?.id || '' });
+      setIsParseDialogOpen(false);
+      setIsDialogOpen(true);
+      setRawText('');
+      toast({ title: "Importation Réussie", description: `Les données de "${result.name}" ont été extraites.` });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erreur Import", description: "L'IA n'a pas pu analyser ce texte." });
     } finally {
       setIsAILoading(false);
     }
@@ -244,9 +262,14 @@ export default function GuidePage() {
               />
             </div>
             {isAdmin && (
-              <Button onClick={handleCreateClick} className="font-headline font-bold">
-                <Plus className="h-4 w-4 mr-2" /> Ajouter une espèce
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsParseDialogOpen(true)} className="font-headline">
+                  <ClipboardList className="h-4 w-4 mr-2" /> Import IA
+                </Button>
+                <Button onClick={handleCreateClick} className="font-headline font-bold">
+                  <Plus className="h-4 w-4 mr-2" /> Ajouter
+                </Button>
+              </div>
             )}
           </div>
         </header>
@@ -363,6 +386,30 @@ export default function GuidePage() {
             ))}
           </div>
         )}
+
+        {/* AI Parse Dialog */}
+        <Dialog open={isParseDialogOpen} onOpenChange={setIsParseDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Importation par IA</DialogTitle>
+              <DialogDescription>Collez n'importe quel texte contenant des informations sur un poisson (description, site web, etc.).</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Textarea 
+                placeholder="Ex: Le Bar Franc (Dicentrarchus labrax) est un poisson combatif. On le trouve souvent sur les côtes rocheuses... Maille à 42cm. Points: 10/cm." 
+                className="min-h-[200px]"
+                value={rawText}
+                onChange={(e) => setRawText(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsParseDialogOpen(false)}>Annuler</Button>
+              <Button onClick={handleAIParse} disabled={isAILoading || !rawText.trim()}>
+                {isAILoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />} Analyser & Créer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Edit/Create Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
