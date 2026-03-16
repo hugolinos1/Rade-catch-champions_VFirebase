@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Rade Catch Champions - Security Rules Strategy
+     * 
+     * Core Philosophy:
+     * This ruleset implements a robust, multi-tier authorization model designed for a competitive 
+     * fishing application. It distinguishes between standard participants and administrators using 
+     * a dedicated administrative collection for high-integrity role checks.
+     * 
+     * Data Structure:
+     * - /users/{userId}: Private user profiles and basic account data.
+     * - /roles_admin/{userId}: A restricted collection where the presence of a UID grants admin rights.
+     * - /fish_species & /competitions: Publicly readable configuration data managed by admins.
+     * - /catches: A global collection where access is governed by ownership, admin status, and moderation state.
+     * - /invitation_codes: Restricted tokens used for registration, managed by admins.
+     * 
+     * Key Security Decisions:
+     * 1. Authorization Independence: Critical fields like 'userId' and 'competitionId' are denormalized 
+     *    directly into 'Catch' documents to allow for fast, local authorization checks without recursive lookups.
+     * 2. Administrative Integrity: Admin privileges are checked via the existence of a document in 
+     *    the '/roles_admin' path, providing a secure "source of truth" separate from editable user profiles.
+     * 3. Moderation-Based Visibility: Catches are private to the owner and admins until 'status' is 
+     *    set to 'approved', at which point they become publicly readable for rankings.
+     * 4. Relational Consistency: Rules enforce that users can only create data linked to their 
+     *    own UID and prevent the modification of ownership links during updates.
+     */
+
+    // --- GLOBAL HELPER FUNCTIONS ---
+
+    /** Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** 
+     * Checks if the authenticated user has administrative privileges.
+     * Uses the dedicated roles_admin collection for authoritative checks.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /** Checks if the authenticated user matches the provided userId. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** Checks if the document exists and the authenticated user is the owner. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- COLLECTION RULES ---
+
+    /**
+     * @description Rules for the User collection. Users manage their own profiles; admins have full visibility.
+     * @path /users/{userId}
+     * @allow (create) if the UID in the path matches the auth UID.
+     * @deny (update) if attempting to change the document's internal ID field.
+     * @principle Path-based ownership and relational immutability.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin(); // Only admins can list all users; individuals use 'get' for their own profile.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId) || isAdmin();
+    }
+
+    /**
+     * @description Administrative roles mapping. Extremely restricted access.
+     * @path /roles_admin/{userId}
+     * @allow (read/write) Only if the requester is already an admin.
+     * @deny (all) Any access by standard users.
+     * @principle Admin-only management of elevated privileges.
+     */
+    match /roles_admin/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    /**
+     * @description Reference data for fish species. Publicly readable for the guide; admin managed.
+     * @path /fish_species/{speciesId}
+     * @allow (get, list) All authenticated users.
+     * @deny (write) Non-admin users.
+     * @principle Public configuration with restricted authoring.
+     */
+    match /fish_species/{speciesId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Competition rules and details. Publicly readable; admin managed.
+     * @path /competitions/{competitionId}
+     * @allow (get, list) All authenticated users.
+     * @deny (write) Non-admin users.
+     * @principle Public configuration with restricted authoring.
+     */
+    match /competitions/{competitionId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    /**
+     * @description Catch submissions. Moderated access based on ownership and approval status.
+     * @path /catches/{catchId}
+     * @allow (get, list) If the user is the owner, an admin, or if the catch is approved.
+     * @deny (update) If changing the owner (userId) or competition (competitionId).
+     * @principle Ownership-based writes with status-based visibility for reads.
+     */
+    match /catches/{catchId} {
+      allow get: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid || resource.data.status == 'approved');
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid || resource.data.status == 'approved');
+      
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      
+      allow update: if resource != null && (isAdmin() || (isOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId && request.resource.data.competitionId == resource.data.competitionId));
+      
+      allow delete: if isAdmin() || isExistingOwner(resource.data.userId);
+    }
+
+    /**
+     * @description Invitation codes for new users. Admins create/delete; users can view/consume unused codes.
+     * @path /invitation_codes/{codeId}
+     * @allow (get) Any signed-in user checking a valid code.
+     * @allow (update) Any user marking a code as used by themselves.
+     * @deny (create, delete) Non-admin users.
+     * @principle Restricted token consumption with strict relational updates.
+     */
+    match /invitation_codes/{codeId} {
+      allow get: if isSignedIn();
+      allow list: if isAdmin();
+      
+      allow create: if isAdmin();
+      
+      // Allow users to mark a code as used ONLY if it's currently unused and they are setting themselves as the user.
+      allow update: if isAdmin() || (isSignedIn() && resource.data.isUsed == false && request.resource.data.isUsed == true && request.resource.data.usedByUserId == request.auth.uid);
+      
+      allow delete: if isAdmin();
+    }
+  }
+}
