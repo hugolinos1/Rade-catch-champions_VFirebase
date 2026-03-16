@@ -24,6 +24,7 @@ const FishSpeciesSchema = z.object({
   keyFeatures: z.string().describe('Physical characteristics.'),
   fishingTips: z.string().describe('Tips for catching.'),
   rarity: z.enum(['Commun', 'Rare', 'Très rare']).describe('Rarity level.'),
+  imageUrl: z.string().optional().describe('URL to an image of the fish.'),
   techniques: z.array(z.string()).describe('List of fishing techniques.'),
   spots: z.array(z.string()).describe('List of recommended spots.'),
   bonusPoints: z.array(z.object({
@@ -53,8 +54,9 @@ Mapping Instructions:
 3. In 'bonusPoints', 'minSize' or 'thresholdCm' maps to 'threshold'.
 4. 'very-rare' maps to 'Très rare', 'rare' to 'Rare', and anything else to 'Commun'.
 5. If 'pointsPerCm' is not mentioned, default to 10.
-6. Extract habitat, diet, and features from the description if they are not explicitly listed.
-7. Ensure all strings are in French if possible.
+6. 'image' field or any URI/URL should be mapped to 'imageUrl'.
+7. Extract habitat, diet, and features from the description if they are not explicitly listed.
+8. Ensure all strings are in French if possible.
 
 Raw Text/Data:
 {{{this}}}`,

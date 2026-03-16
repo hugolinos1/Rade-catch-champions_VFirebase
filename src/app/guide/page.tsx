@@ -22,7 +22,7 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList } from 'lucide-react';
+import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList, ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FishSpecies, BonusPointThreshold } from '@/lib/types';
@@ -40,7 +40,7 @@ const EMPTY_FISH: FishSpecies = {
   pointsPerCm: 10,
   minSize: 0,
   description: '',
-  imageUrl: 'https://picsum.photos/seed/new-fish/600/400',
+  imageUrl: '',
   habitat: '',
   diet: '',
   keyFeatures: '',
@@ -477,6 +477,21 @@ export default function GuidePage() {
                         <SelectItem value="Très rare">Très rare</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+                  <div className="col-span-2 space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" /> URL de l'image
+                    </Label>
+                    <Input 
+                      value={editingFish.imageUrl} 
+                      onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})}
+                      placeholder="https://example.com/image.jpg"
+                    />
+                    {editingFish.imageUrl && (
+                      <div className="relative h-32 w-full rounded-md overflow-hidden bg-slate-100 border mt-2">
+                         <Image src={editingFish.imageUrl} alt="Preview" fill className="object-contain" />
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Taille Moyenne</Label>
