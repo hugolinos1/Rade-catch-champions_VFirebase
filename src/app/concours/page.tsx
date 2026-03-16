@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -10,10 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Send, History, Scale, Anchor, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Catch, UserProfile, FishSpecies } from '@/lib/types';
+import { Catch, UserProfile, FishSpecies, Contest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
-import { collection, query, orderBy, limit } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function ConcoursPage() {
@@ -22,16 +23,23 @@ export default function ConcoursPage() {
   const { user: currentUser } = useUser();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Firestore Collections - Only fetch if we have a user to avoid early permission errors
+  // Firestore Collections
+  const activeContestQuery = useMemoFirebase(() => 
+    query(collection(firestore, 'competitions'), where('status', '==', 'active'), limit(1)), 
+  [firestore]);
+
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const usersQuery = useMemoFirebase(() => currentUser ? collection(firestore, 'users') : null, [firestore, currentUser]);
   const recentCatchesQuery = useMemoFirebase(() => 
     currentUser ? query(collection(firestore, 'catches'), orderBy('timestamp', 'desc'), limit(10)) : null, 
   [firestore, currentUser]);
 
+  const { data: activeContests } = useCollection<Contest>(activeContestQuery);
   const { data: species } = useCollection<FishSpecies>(fishQuery);
   const { data: allUsers } = useCollection<UserProfile>(usersQuery);
   const { data: recentCatches, isLoading: loadingCatches } = useCollection<Catch>(recentCatchesQuery);
+
+  const activeContest = activeContests?.[0];
 
   // Form State
   const [selectedFisherman, setSelectedFisherman] = useState(currentUser?.uid || '');
@@ -80,9 +88,9 @@ export default function ConcoursPage() {
         <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-2 bg-primary/10 text-primary border-primary/20">
-              <Anchor className="h-3 w-3 mr-1" /> Saison d'Automne 2024
+              <Anchor className="h-3 w-3 mr-1" /> {activeContest?.name || "Chargement..."}
             </Badge>
-            <h1 className="font-headline text-4xl font-bold">Concours Actif</h1>
+            <h1 className="font-headline text-4xl font-bold">{activeContest ? activeContest.name : "Concours Actif"}</h1>
           </div>
         </header>
 
