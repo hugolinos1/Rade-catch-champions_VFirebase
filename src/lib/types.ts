@@ -48,8 +48,9 @@ export type Contest = {
   name: string;
   startDate: string;
   endDate: string;
-  isActive: boolean;
-  rules: string;
+  status: 'active' | 'draft' | 'completed';
+  createdAt: string;
+  rules?: string;
 };
 
 export type UserProfile = {
@@ -59,10 +60,14 @@ export type UserProfile = {
   totalPoints: number;
   catchesCount: number;
   avatarUrl?: string;
+  email?: string;
 };
 
 export type InvitationCode = {
+  id: string;
   code: string;
   isUsed: boolean;
   createdAt: string;
+  usedBy?: string;
+  usedAt?: string;
 };

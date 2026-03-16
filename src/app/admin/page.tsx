@@ -1,8 +1,9 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,10 +15,16 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { 
   Key, 
   Users, 
-  RefreshCcw, 
   Trash2, 
   Plus, 
   Loader2,
@@ -25,15 +32,20 @@ import {
   Lock,
   Edit2,
   Camera,
-  User as UserIcon
+  User as UserIcon,
+  Trophy,
+  Calendar,
+  CheckCircle2,
+  Clock,
+  AlertCircle
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useStorage } from '@/firebase';
-import { doc, collection, query, where } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { doc, collection, query, where, orderBy } from 'firebase/firestore';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { UserProfile, InvitationCode } from '@/lib/types';
+import { UserProfile, InvitationCode, Contest } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -43,12 +55,25 @@ export default function AdminPage() {
   const storage = useStorage();
   const { user: authUser } = useUser();
   const [activeTab, setActiveTab] = useState('access');
-  const [isGenerating, setIsGenerating] = useState(false);
   
-  // State for user editing
+  // States for generation & updates
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isCreatingContest, setIsCreatingContest] = useState(false);
+  
+  // State for modals
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [isUserUpdating, setIsUserUpdating] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isContestDialogOpen, setIsContestDialogOpen] = useState(false);
+  
+  // New Contest Form State
+  const [newContest, setNewContest] = useState({
+    name: '',
+    startDate: '',
+    endDate: '',
+    status: 'draft' as const
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Fetch current user profile to check role
@@ -68,8 +93,13 @@ export default function AdminPage() {
     isAdmin ? query(collection(firestore, 'registration_codes'), where('isUsed', '==', false)) : null, 
   [firestore, isAdmin]);
 
+  const competitionsQuery = useMemoFirebase(() => 
+    isAdmin ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, 
+  [firestore, isAdmin]);
+
   const { data: users, isLoading: loadingUsers } = useCollection<UserProfile>(usersQuery);
   const { data: activeCodes, isLoading: loadingCodes } = useCollection<InvitationCode>(activeCodesQuery);
+  const { data: competitions, isLoading: loadingCompetitions } = useCollection<Contest>(competitionsQuery);
 
   const handleGenerateCode = () => {
     if (!isAdmin) return;
@@ -137,6 +167,32 @@ export default function AdminPage() {
     } finally {
       setIsUploadingAvatar(false);
     }
+  };
+
+  const handleCreateContest = () => {
+    if (!isAdmin || !newContest.name || !newContest.startDate || !newContest.endDate) return;
+    setIsCreatingContest(true);
+
+    const contestData: Omit<Contest, 'id'> = {
+      ...newContest,
+      createdAt: new Date().toISOString(),
+    };
+
+    const contestsCol = collection(firestore, 'competitions');
+    addDocumentNonBlocking(contestsCol, contestData);
+
+    setTimeout(() => {
+      setIsCreatingContest(false);
+      setIsContestDialogOpen(false);
+      setNewContest({ name: '', startDate: '', endDate: '', status: 'draft' });
+      toast({ title: "Compétition créée", description: `${contestData.name} a été ajouté.` });
+    }, 500);
+  };
+
+  const handleUpdateContestStatus = (id: string, status: Contest['status']) => {
+    const contestRef = doc(firestore, 'competitions', id);
+    updateDocumentNonBlocking(contestRef, { status });
+    toast({ title: "Statut mis à jour" });
   };
 
   const tabs = [
@@ -326,6 +382,153 @@ export default function AdminPage() {
           </div>
         )}
 
+        {activeTab === 'competitions' && (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <div>
+                <h2 className="text-3xl font-headline font-bold text-slate-900">Gestion des Compétitions</h2>
+                <p className="text-slate-500">Créez et gérez les concours de pêche.</p>
+              </div>
+              <Button onClick={() => setIsContestDialogOpen(true)} className="bg-[#0a3d62] font-bold">
+                <Plus className="mr-2 h-5 w-5" /> Nouveau Concours
+              </Button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {loadingCompetitions ? (
+                <div className="col-span-full flex justify-center py-12"><Loader2 className="animate-spin text-slate-300 h-10 w-10" /></div>
+              ) : competitions?.map((contest) => (
+                <Card key={contest.id} className="border-none shadow-sm bg-white overflow-hidden group">
+                  <div className={cn(
+                    "h-2 w-full",
+                    contest.status === 'active' ? "bg-green-500" : contest.status === 'draft' ? "bg-blue-400" : "bg-slate-300"
+                  )} />
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <CardTitle className="font-headline text-xl">{contest.name}</CardTitle>
+                      <Badge variant={contest.status === 'active' ? 'default' : 'secondary'} className={cn(
+                        "text-[10px] uppercase font-bold",
+                        contest.status === 'active' && "bg-green-500 hover:bg-green-600"
+                      )}>
+                        {contest.status === 'active' ? 'En cours' : contest.status === 'draft' ? 'Brouillon' : 'Terminé'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3 text-sm text-slate-500">
+                      <Calendar className="h-4 w-4 text-slate-400" />
+                      <span>{new Date(contest.startDate).toLocaleDateString()} - {new Date(contest.endDate).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <div className="pt-4 flex gap-2">
+                      {contest.status !== 'active' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 text-xs"
+                          onClick={() => handleUpdateContestStatus(contest.id, 'active')}
+                        >
+                          <CheckCircle2 className="h-3 w-3 mr-1 text-green-500" /> Activer
+                        </Button>
+                      )}
+                      {contest.status === 'active' && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 text-xs"
+                          onClick={() => handleUpdateContestStatus(contest.id, 'completed')}
+                        >
+                          <Clock className="h-3 w-3 mr-1 text-slate-500" /> Clôturer
+                        </Button>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-slate-400 hover:text-destructive"
+                        onClick={() => {
+                          if(confirm("Supprimer ce concours ?")) {
+                            deleteDocumentNonBlocking(doc(firestore, 'competitions', contest.id));
+                            toast({ title: "Concours supprimé" });
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              {competitions?.length === 0 && !loadingCompetitions && (
+                <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed text-center">
+                  <Trophy className="h-12 w-12 text-slate-100 mx-auto mb-4" />
+                  <p className="text-slate-400">Aucune compétition enregistrée.</p>
+                </div>
+              )}
+            </div>
+
+            {/* NEW CONTEST DIALOG */}
+            <Dialog open={isContestDialogOpen} onOpenChange={setIsContestDialogOpen}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold">Nouveau Concours</DialogTitle>
+                  <DialogDescription>Définissez les dates et le nom de la compétition.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-1.5">
+                    <Label>Nom du Concours</Label>
+                    <Input 
+                      placeholder="Ex: Rade Catch Été 2025" 
+                      value={newContest.name}
+                      onChange={e => setNewContest({ ...newContest, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Date de début</Label>
+                      <Input 
+                        type="datetime-local" 
+                        value={newContest.startDate}
+                        onChange={e => setNewContest({ ...newContest, startDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Date de fin</Label>
+                      <Input 
+                        type="datetime-local" 
+                        value={newContest.endDate}
+                        onChange={e => setNewContest({ ...newContest, endDate: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Statut initial</Label>
+                    <Select 
+                      value={newContest.status} 
+                      onValueChange={(v: any) => setNewContest({ ...newContest, status: v })}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="draft">Brouillon</SelectItem>
+                        <SelectItem value="active">Actif immédiatement</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setIsContestDialogOpen(false)}>Annuler</Button>
+                  <Button 
+                    onClick={handleCreateContest} 
+                    disabled={isCreatingContest}
+                    className="bg-[#0a3d62] font-bold px-8"
+                  >
+                    {isCreatingContest ? <Loader2 className="animate-spin mr-2" /> : "Créer le concours"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+
         {/* MODAL EDIT USER */}
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent className="max-w-md">
@@ -382,7 +585,7 @@ export default function AdminPage() {
           </DialogContent>
         </Dialog>
 
-        {activeTab !== 'access' && ( activeTab === 'guide' ? (
+        {activeTab !== 'access' && activeTab !== 'competitions' && ( activeTab === 'guide' ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
             <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
             <p className="text-slate-400 text-center px-4">Utilisez le module "Guide" dans la navigation pour gérer les poissons.</p>
