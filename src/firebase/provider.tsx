@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { DependencyList, createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -6,6 +7,7 @@ import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { toast } from '@/hooks/use-toast';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -76,6 +78,11 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           // Automatically sign in anonymously if no user is present
           signInAnonymously(auth).catch(err => {
             console.error("FirebaseProvider: Anonymous sign-in failed", err);
+            toast({
+              variant: "destructive",
+              title: "Erreur de connexion",
+              description: "Impossible d'établir une session sécurisée. Vérifiez votre connexion."
+            });
           });
         }
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });

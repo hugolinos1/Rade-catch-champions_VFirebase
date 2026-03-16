@@ -22,7 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog";
+} from "@/components/Dialog";
 import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList, ImageIcon, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
@@ -33,7 +33,7 @@ import { generateFishDescription } from '@/ai/flows/generate-fish-description-fl
 import { parseFishData } from '@/ai/flows/parse-fish-data-flow';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useStorage, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 const EMPTY_FISH: FishSpecies = {
   id: '',
@@ -121,62 +121,45 @@ export default function GuidePage() {
     const file = e.target.files?.[0];
     if (!file || !editingFish) return;
 
-    // Reset input value to allow re-uploading the same file if it failed
-    if (fileInputRef.current) fileInputRef.current.value = '';
-
     setIsUploading(true);
     
     try {
       const storagePath = `species/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      
+      // Utilisation de uploadBytes pour une gestion d'erreur simplifiée et directe
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
 
-      uploadTask.on('state_changed', 
-        (snapshot) => {
-          // Progress monitoring
-        }, 
-        (error) => {
-          console.error("Storage Error:", error);
-          setIsUploading(false);
-          
-          let message = "Erreur de stockage.";
-          if (error.code === 'storage/unauthorized') message = "Non autorisé. Vérifiez vos règles Storage.";
-          if (error.code === 'storage/retry-limit-exceeded') message = "Le transfert a pris trop de temps.";
-          if (error.code === 'storage/project-not-found') message = "Le bucket Storage est introuvable ou mal configuré.";
+      setEditingFish(prev => prev ? {
+        ...prev,
+        imageUrl: downloadURL
+      } : null);
 
-          toast({
-            variant: "destructive",
-            title: "Échec du chargement",
-            description: message
-          });
-        }, 
-        async () => {
-          try {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            setEditingFish(prev => prev ? {
-              ...prev,
-              imageUrl: downloadURL
-            } : null);
+      toast({
+        title: "Photo ajoutée",
+        description: "L'image a été chargée avec succès."
+      });
+    } catch (error: any) {
+      console.error("Storage Error:", error);
+      let message = "Impossible d'envoyer l'image vers Storage.";
+      
+      if (error.code === 'storage/unauthorized') {
+        message = "Accès refusé. Vérifiez que vous êtes connecté et que les règles Storage sont actives.";
+      } else if (error.code === 'storage/retry-limit-exceeded') {
+        message = "Délai d'attente dépassé. Vérifiez votre connexion.";
+      } else if (error.code === 'storage/unknown') {
+        message = "Erreur de configuration du bucket Storage.";
+      }
 
-            toast({
-              title: "Photo ajoutée",
-              description: "L'image a été chargée avec succès."
-            });
-          } catch (err) {
-            console.error("Download URL Error:", err);
-          } finally {
-            setIsUploading(false);
-          }
-        }
-      );
-    } catch (err) {
-      console.error("Upload Initialization Error:", err);
-      setIsUploading(false);
       toast({
         variant: "destructive",
-        title: "Erreur critique",
-        description: "Impossible d'initialiser le transfert."
+        title: "Échec du chargement",
+        description: message
       });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
