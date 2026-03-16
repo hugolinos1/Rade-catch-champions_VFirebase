@@ -1,9 +1,9 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyBCY3EkaxB6IQVcHpgAjt6xQbNoKOIchfw",
-  authDomain: "rade-catch-champions.firebaseapp.com",
-  projectId: "rade-catch-champions",
-  storageBucket: "rade-catch-champions.firebasestorage.app",
-  messagingSenderId: "23138421411",
-  appId: "1:23138421411:web:f1da01b0274535e4278d16",
-  measurementId: "G-NNNYTZHFJD"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
