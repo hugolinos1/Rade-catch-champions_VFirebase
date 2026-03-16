@@ -42,7 +42,8 @@ import {
   MapPin,
   Scale,
   ShieldCheck,
-  Copy
+  Copy,
+  ShieldAlert
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -92,7 +93,6 @@ export default function AdminPage() {
   const { data: profile, isLoading: loadingProfile } = useDoc<UserProfile>(userDocRef);
 
   // For safety in MVP, we check if the role is admin. 
-  // If no profile yet, we wait.
   const isAdmin = profile?.role === 'admin';
 
   // 2. Queries for admin data - only run if profile is loaded
@@ -165,7 +165,8 @@ export default function AdminPage() {
     const userRef = doc(firestore, 'users', editingUser.id);
     updateDocumentNonBlocking(userRef, {
       name: editingUser.name,
-      avatarUrl: editingUser.avatarUrl || null
+      avatarUrl: editingUser.avatarUrl || null,
+      role: editingUser.role // Enregistre le rôle (admin ou user)
     });
 
     setTimeout(() => {
@@ -327,7 +328,7 @@ export default function AdminPage() {
     );
   }
 
-  // Security barrier: check if admin in state
+  // Security barrier: check if admin
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -439,7 +440,7 @@ export default function AdminPage() {
                   <Users className="h-6 w-6 text-[#0a3d62]" />
                   Gestion des Utilisateurs
                 </CardTitle>
-                <p className="text-slate-500 text-sm">Consultez et modifiez les profils des pêcheurs inscrits</p>
+                <p className="text-slate-500 text-sm">Consultez et modifiez les profils des membres</p>
               </CardHeader>
               <CardContent className="space-y-8">
                 <div className="grid grid-cols-2 gap-4">
@@ -483,9 +484,13 @@ export default function AdminPage() {
                                 <span className="text-slate-800 font-bold text-sm">
                                   {u.name || "Anonyme"}
                                 </span>
-                                {u.role === 'admin' && (
+                                {u.role === 'admin' ? (
                                   <Badge className="bg-blue-100 text-blue-600 border-none text-[9px] h-4 uppercase font-bold">
-                                    Admin
+                                    <ShieldAlert className="h-2 w-2 mr-1" /> Admin
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="text-[9px] h-4 uppercase font-bold text-slate-400 border-slate-200">
+                                    Membre
                                   </Badge>
                                 )}
                               </div>
@@ -763,8 +768,8 @@ export default function AdminPage() {
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold">Modifier le Profil</DialogTitle>
-              <DialogDescription>Mettez à jour les informations du pêcheur.</DialogDescription>
+              <DialogTitle className="text-xl font-bold">Modifier le Membre</DialogTitle>
+              <DialogDescription>Mettez à jour les informations et les droits du membre.</DialogDescription>
             </DialogHeader>
             {editingUser && (
               <div className="space-y-6 py-4">
@@ -788,12 +793,31 @@ export default function AdminPage() {
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <Label>Nom du Pêcheur</Label>
+                    <Label>Nom d'affichage</Label>
                     <Input 
                       value={editingUser.name} 
                       onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })} 
                       placeholder="Nom complet"
                     />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Rôle & Droits d'accès</Label>
+                    <Select 
+                      value={editingUser.role} 
+                      onValueChange={(v: 'admin' | 'user') => setEditingUser({ ...editingUser, role: v })}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choisir un rôle" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="user">Utilisateur (Pêcheur)</SelectItem>
+                        <SelectItem value="admin">Administrateur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Les administrateurs peuvent gérer les codes, les membres, les concours et les captures.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -805,7 +829,7 @@ export default function AdminPage() {
                 disabled={isUserUpdating}
                 className="bg-[#0a3d62] font-bold px-8"
               >
-                {isUserUpdating ? <Loader2 className="animate-spin mr-2" /> : "Enregistrer"}
+                {isUserUpdating ? <Loader2 className="animate-spin mr-2" /> : "Enregistrer les modifications"}
               </Button>
             </DialogFooter>
           </DialogContent>
