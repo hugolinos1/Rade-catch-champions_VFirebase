@@ -1,10 +1,10 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   Key, 
   Users, 
@@ -30,22 +30,25 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('access');
   const [isGenerating, setIsGenerating] = useState(false);
 
-  // Fetch current user profile to check role
+  // 1. Fetch current user profile to check role
   const userDocRef = useMemoFirebase(() => 
     authUser ? doc(firestore, 'users', authUser.uid) : null, 
   [firestore, authUser]);
   const { data: profile, isLoading: loadingProfile } = useDoc<UserProfile>(userDocRef);
 
-  // Queries for admin data
-  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
+  const isAdmin = profile?.role === 'admin';
+
+  // 2. Conditional queries for admin data: only run if user is confirmed admin
+  const usersQuery = useMemoFirebase(() => 
+    isAdmin ? collection(firestore, 'users') : null, 
+  [firestore, isAdmin]);
+
   const activeCodesQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'registration_codes'), where('isUsed', '==', false)), 
-  [firestore]);
+    isAdmin ? query(collection(firestore, 'registration_codes'), where('isUsed', '==', false)) : null, 
+  [firestore, isAdmin]);
 
   const { data: users, isLoading: loadingUsers } = useCollection<UserProfile>(usersQuery);
   const { data: activeCodes, isLoading: loadingCodes } = useCollection<InvitationCode>(activeCodesQuery);
-
-  const isAdmin = profile?.role === 'admin';
 
   const handleGenerateCode = () => {
     if (!isAdmin) return;
@@ -120,7 +123,6 @@ export default function AdminPage() {
       <Navigation />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-4 mb-8">
           {tabs.map((tab) => (
             <button
@@ -140,7 +142,6 @@ export default function AdminPage() {
 
         {activeTab === 'access' && (
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* Left Panel: Registration Codes */}
             <Card className="border-none shadow-sm bg-white">
               <CardHeader className="pb-4">
                 <CardTitle className="text-2xl font-headline flex items-center gap-2 text-slate-800">
@@ -182,7 +183,7 @@ export default function AdminPage() {
                         </Button>
                       </div>
                     ))}
-                    {activeCodes?.length === 0 && (
+                    {activeCodes?.length === 0 && !loadingCodes && (
                       <p className="text-center py-8 text-slate-300 italic text-sm">Aucun code actif.</p>
                     )}
                   </div>
@@ -190,7 +191,6 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            {/* Right Panel: Platform State */}
             <Card className="border-none shadow-xl bg-[#0f172a] text-white">
               <CardHeader className="pb-6">
                 <CardTitle className="text-2xl font-headline flex items-center gap-2">
@@ -199,7 +199,6 @@ export default function AdminPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-8">
-                {/* Stats Row */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -215,7 +214,6 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                {/* Users List */}
                 <div>
                   <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Users className="h-3 w-3" /> UTILISATEURS
@@ -242,7 +240,7 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
-                    {users?.length === 0 && (
+                    {users?.length === 0 && !loadingUsers && (
                       <p className="text-center py-4 text-slate-500 italic text-sm">Aucun utilisateur inscrit.</p>
                     )}
                   </div>
