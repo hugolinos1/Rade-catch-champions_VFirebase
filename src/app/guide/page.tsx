@@ -123,7 +123,7 @@ export default function GuidePage() {
 
     setIsUploading(true);
     
-    // Augmentation du délai à 30s pour laisser plus de temps aux requêtes CORS
+    // Timeout de 30 secondes pour compenser les éventuels délais CORS/Réseau
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('TIMEOUT')), 30000)
     );
@@ -153,11 +153,9 @@ export default function GuidePage() {
       let message = "Une erreur est survenue lors du chargement.";
       
       if (error.message === 'TIMEOUT') {
-        message = "Délai dépassé. Vérifiez les paramètres CORS de votre bucket ou votre connexion.";
+        message = "Délai dépassé. Si vous avez créé votre bucket manuellement, vérifiez les réglages CORS via gsutil.";
       } else if (error.code === 'storage/unauthorized') {
-        message = "Accès refusé. Vérifiez que vous êtes connecté.";
-      } else if (error.code === 'storage/retry-limit-exceeded') {
-        message = "Le chargement a échoué (limite d'essais atteinte).";
+        message = "Accès refusé. Vérifiez vos règles de sécurité Storage.";
       }
 
       toast({
