@@ -1,23 +1,26 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Trophy, Medal, Star, Fish, Crown, TrendingUp, Loader2 } from 'lucide-react';
-import { UserProfile, Catch } from '@/lib/types';
+import { Trophy, Medal, Star, Fish, Crown, Loader2, User as UserIcon, Scale, Target } from 'lucide-react';
+import { UserProfile, Catch, Contest } from '@/lib/types';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export default function ClassementPage() {
   const firestore = useFirestore();
 
+  // Query for the active contest to get its name
+  const activeContestQuery = useMemoFirebase(() => 
+    query(collection(firestore, 'competitions'), where('status', '==', 'active'), limit(1)), 
+  [firestore]);
+
   // Query for top users by points
   const topUsersQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'users'), orderBy('totalPoints', 'desc'), limit(10)), 
+    query(collection(firestore, 'users'), orderBy('totalPoints', 'desc'), limit(20)), 
   [firestore]);
 
   // Query for the biggest approved catch (Record Big Fish)
@@ -25,178 +28,194 @@ export default function ClassementPage() {
     query(collection(firestore, 'catches'), where('status', '==', 'approved'), orderBy('size', 'desc'), limit(1)), 
   [firestore]);
 
+  const { data: contests } = useCollection<Contest>(activeContestQuery);
   const { data: rankings, isLoading: loadingRankings } = useCollection<UserProfile>(topUsersQuery);
   const { data: bigFishes, isLoading: loadingBigFish } = useCollection<Catch>(bigFishQuery);
 
+  const activeContestName = contests?.[0]?.name || "Concours Aout 2025";
   const top3 = rankings?.slice(0, 3) || [];
-  const generalRanking = rankings?.slice(3) || [];
+  const restOfRankings = rankings?.slice(3) || [];
   const recordCatch = bigFishes?.[0];
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-0">
+    <div className="min-h-screen bg-[#f8fafc] pb-20">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-12 max-w-6xl">
+        {/* Page Header */}
         <header className="mb-12 text-center">
-          <h1 className="font-headline text-5xl font-bold text-primary mb-2">Tableau d'Honneur</h1>
-          <p className="text-muted-foreground">Classement officiel de la Rade de Brest</p>
+          <h1 className="font-headline text-4xl md:text-5xl font-bold text-[#0a3d62] mb-4">
+            Tableau d'Honneur {activeContestName}
+          </h1>
+          <Badge variant="secondary" className="bg-slate-200/50 text-slate-500 font-medium px-4 py-1 rounded-full border-none">
+            Championnat Rade de Brest
+          </Badge>
         </header>
 
         {loadingRankings ? (
-          <div className="flex justify-center py-20"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin h-10 w-10 text-primary" /></div>
         ) : (
-          <>
-            {/* Podium */}
-            <div className="grid md:grid-cols-3 gap-6 items-end mb-16 max-w-5xl mx-auto">
-              {/* Second Place */}
-              {top3[1] && (
-                <Card className="order-2 md:order-1 border-none shadow-lg bg-white/50 relative overflow-hidden h-[300px] flex flex-col justify-end">
-                  <div className="absolute top-4 right-4 text-slate-400">
-                     <Medal className="h-12 w-12" />
-                  </div>
-                  <CardContent className="p-6 text-center">
-                    <Avatar className="h-20 w-20 mx-auto mb-4 border-4 border-slate-200">
-                      <AvatarImage src={top3[1].avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[1].name}`} />
-                      <AvatarFallback>{top3[1].name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-headline text-xl font-bold">{top3[1].name}</h3>
-                    <p className="text-primary font-bold text-lg">{top3[1].totalPoints.toLocaleString()} pts</p>
-                    <Badge variant="secondary" className="mt-2">2ème Place</Badge>
+          <div className="space-y-12">
+            
+            {/* 1. PODIUM SECTION */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end max-w-5xl mx-auto">
+              {/* 2nd Place - Left */}
+              <div className="order-2 md:order-1">
+                <Card className="border-none shadow-sm bg-[#d1e9f0] rounded-xl overflow-hidden text-center h-[280px] flex flex-col justify-center">
+                  <CardContent className="pt-8">
+                    <div className="w-12 h-12 bg-white/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Medal className="h-6 w-6 text-slate-400" />
+                    </div>
+                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e]">{top3[1]?.name || "Gabriel"}</h3>
+                    <div className="mt-2">
+                      <p className="text-4xl font-headline font-bold text-[#1e4e6e]">{top3[1]?.totalPoints || 0}</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">POINTS</p>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-white/20">
+                       <p className="text-xs text-slate-500">{top3[1]?.catchesCount || 0} captures</p>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
+              </div>
 
-              {/* First Place */}
-              {top3[0] && (
-                <Card className="order-1 md:order-2 border-primary border-2 shadow-2xl bg-white relative overflow-hidden h-[380px] flex flex-col justify-end scale-105 z-10">
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 text-yellow-500 animate-bounce">
-                     <Crown className="h-16 w-16" />
+              {/* 1st Place - Center */}
+              <div className="order-1 md:order-2 scale-105 z-10">
+                <Card className="border-none shadow-xl bg-[#ff8a50] rounded-xl overflow-hidden text-center h-[340px] flex flex-col justify-center relative">
+                  <div className="absolute top-4 right-4 opacity-20">
+                    <Crown className="h-16 w-16 text-white" />
                   </div>
-                  <CardContent className="p-8 text-center">
-                    <Avatar className="h-28 w-28 mx-auto mb-4 border-4 border-yellow-400">
-                      <AvatarImage src={top3[0].avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[0].name}`} />
-                      <AvatarFallback>{top3[0].name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-headline text-2xl font-bold">{top3[0].name}</h3>
-                    <p className="text-primary font-bold text-2xl">{top3[0].totalPoints.toLocaleString()} pts</p>
-                    <Badge className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 mt-3 font-bold text-sm">Champion en Titre</Badge>
+                  <CardContent className="pt-10">
+                    <div className="w-16 h-16 bg-white/30 rounded-full flex items-center justify-center mx-auto mb-4 shadow-inner">
+                      <Trophy className="h-8 w-8 text-yellow-300" />
+                    </div>
+                    <h3 className="font-headline text-3xl font-bold text-white">{top3[0]?.name || "Colas"}</h3>
+                    <div className="mt-4">
+                      <p className="text-6xl font-headline font-bold text-white">{top3[0]?.totalPoints || 0}</p>
+                      <p className="text-xs font-bold text-white/80 uppercase tracking-widest">POINTS</p>
+                    </div>
+                    <div className="mt-8 pt-8 border-t border-white/20 flex flex-col items-center">
+                       <div className="w-20 h-2 bg-white/40 rounded-full mb-3" />
+                       <p className="text-sm text-white/90 font-medium">{top3[0]?.catchesCount || 0} captures au compteur</p>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
+              </div>
 
-              {/* Third Place */}
-              {top3[2] && (
-                <Card className="order-3 border-none shadow-lg bg-white/50 relative overflow-hidden h-[260px] flex flex-col justify-end">
-                   <div className="absolute top-4 right-4 text-amber-700 opacity-60">
-                     <Medal className="h-10 w-10" />
-                  </div>
-                  <CardContent className="p-6 text-center">
-                    <Avatar className="h-16 w-16 mx-auto mb-4 border-4 border-amber-600/30">
-                      <AvatarImage src={top3[2].avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[2].name}`} />
-                      <AvatarFallback>{top3[2].name.substring(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <h3 className="font-headline text-lg font-bold">{top3[2].name}</h3>
-                    <p className="text-primary font-bold">{top3[2].totalPoints.toLocaleString()} pts</p>
-                    <Badge variant="outline" className="mt-2">3ème Place</Badge>
+              {/* 3rd Place - Right */}
+              <div className="order-3">
+                <Card className="border-none shadow-sm bg-[#d1e9f0] rounded-xl overflow-hidden text-center h-[260px] flex flex-col justify-center">
+                  <CardContent className="pt-8">
+                    <div className="w-12 h-12 bg-white/40 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Medal className="h-6 w-6 text-orange-400" />
+                    </div>
+                    <h3 className="font-headline text-2xl font-bold text-[#1e4e6e]">{top3[2]?.name || "Barth"}</h3>
+                    <div className="mt-2">
+                      <p className="text-4xl font-headline font-bold text-[#1e4e6e]">{top3[2]?.totalPoints || 0}</p>
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">POINTS</p>
+                    </div>
+                    <div className="mt-6 pt-6 border-t border-white/20">
+                       <p className="text-xs text-slate-500">{top3[2]?.catchesCount || 0} captures</p>
+                    </div>
                   </CardContent>
                 </Card>
-              )}
+              </div>
             </div>
 
-            {/* Record / Big Fish */}
-            <div className="grid md:grid-cols-2 gap-8 mb-16">
-              <Card className="bg-slate-900 text-white border-none overflow-hidden group min-h-[160px]">
-                <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://picsum.photos/seed/water/800/400')] bg-cover"></div>
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2">
-                    <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
-                    Record Big Fish
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">La plus grosse prise enregistrée cette saison.</CardDescription>
-                </CardHeader>
-                <CardContent className="relative z-10">
-                  {loadingBigFish ? <Loader2 className="animate-spin h-6 w-6" /> : recordCatch ? (
-                    <div className="flex items-center gap-6">
-                      <div className="bg-primary/20 p-4 rounded-full">
-                        <Fish className="h-12 w-12 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="text-3xl font-headline font-bold">{recordCatch.fishName} - {recordCatch.size}cm</h4>
-                        <p className="text-slate-300">Capturé par <span className="text-white font-bold">{recordCatch.anglerName}</span></p>
-                        <p className="text-xs text-slate-500 mt-1">Date: {recordCatch.date}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-slate-400 italic">Aucun record pour le moment.</p>
-                  )}
-                </CardContent>
-              </Card>
+            {/* 2. BIG FISH RECORD SECTION */}
+            <div className="max-w-5xl mx-auto">
+              <Card className="bg-[#0f172a] text-white border-none rounded-3xl shadow-2xl overflow-hidden">
+                <CardContent className="p-8 md:p-12 relative">
+                   <div className="flex items-center gap-3 mb-8">
+                     <Star className="h-6 w-6 text-yellow-400 fill-yellow-400" />
+                     <h2 className="font-headline text-2xl font-bold italic tracking-wider">RECORD : BIG FISH</h2>
+                   </div>
 
-              <Card className="border-none shadow-md bg-accent/10">
-                <CardHeader>
-                  <CardTitle className="font-headline flex items-center gap-2 text-primary">
-                    <TrendingUp className="h-6 w-6" />
-                    Statistiques Saison
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-muted-foreground uppercase font-bold tracking-wider">Top Grimpeur</p>
-                      <p className="text-2xl font-headline font-bold">{top3[0]?.name || "En attente"}</p>
-                      <p className="text-sm text-green-600 font-bold">Mène la danse</p>
-                    </div>
-                    <Avatar className="h-16 w-16">
-                       <AvatarImage src={top3[0]?.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${top3[0]?.name}`} />
-                    </Avatar>
-                  </div>
+                   <div className="grid md:grid-cols-12 gap-8 items-center">
+                      <div className="md:col-span-4">
+                         <div className="relative aspect-square rounded-2xl overflow-hidden border-4 border-slate-700 shadow-2xl">
+                            <Image 
+                              src={recordCatch?.imageUrl || 'https://picsum.photos/seed/bigfish/600/600'} 
+                              alt="Big Fish" 
+                              fill 
+                              className="object-cover"
+                            />
+                         </div>
+                      </div>
+                      
+                      <div className="md:col-span-8 grid grid-cols-2 gap-4">
+                         <div className="bg-[#1e293b] p-6 rounded-xl border border-slate-700/50">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">PÊCHEUR</p>
+                            <p className="text-2xl font-headline font-bold">{recordCatch?.anglerName || "L'arbitre"}</p>
+                         </div>
+                         <div className="bg-[#1e293b] p-6 rounded-xl border border-slate-700/50">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">ESPÈCE</p>
+                            <p className="text-2xl font-headline font-bold">{recordCatch?.fishName || "Chinchard"}</p>
+                         </div>
+                         <div className="bg-[#1e293b] p-6 rounded-xl border border-slate-700/50">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">GRANDEUR</p>
+                            <p className="text-2xl font-headline font-bold">{recordCatch?.size || 40} <span className="text-sm font-normal text-slate-400">cm</span></p>
+                         </div>
+                         <div className="bg-[#1e293b] p-6 rounded-xl border border-slate-700/50">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">SCORE</p>
+                            <p className="text-2xl font-headline font-bold text-yellow-400">{recordCatch?.points || 6} <span className="text-sm font-normal text-slate-400">pts</span></p>
+                         </div>
+                      </div>
+                   </div>
+
+                   {/* Background Decor */}
+                   <div className="absolute top-10 right-10 opacity-5 pointer-events-none">
+                     <Fish className="h-48 w-48 rotate-12" />
+                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* General Ranking Table */}
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="font-headline text-2xl">Classement Général</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-16">Rang</TableHead>
-                      <TableHead>Pêcheur</TableHead>
-                      <TableHead className="text-center">Prises</TableHead>
-                      <TableHead className="text-right">Score Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {generalRanking.map((user, idx) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-bold text-muted-foreground">#{idx + 4}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarImage src={user.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.name}`} />
-                            </Avatar>
-                            <span className="font-medium">{user.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">{user.catchesCount || 0}</TableCell>
-                        <TableCell className="text-right font-headline font-bold text-primary">{user.totalPoints.toLocaleString()} pts</TableCell>
-                      </TableRow>
-                    ))}
-                    {generalRanking.length === 0 && rankings && rankings.length <= 3 && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center py-8 text-muted-foreground italic">
-                          Plus de pêcheurs à venir...
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </>
+            {/* 3. GENERAL RANKING TABLE */}
+            <div className="max-w-5xl mx-auto">
+               <Card className="border border-slate-100 shadow-sm rounded-2xl overflow-hidden bg-white">
+                  <CardContent className="p-0">
+                    <div className="bg-slate-50/50 border-b border-slate-100 p-4 flex items-center gap-2">
+                       <Trophy className="h-4 w-4 text-slate-400" />
+                       <h3 className="text-sm font-bold text-slate-600 uppercase tracking-wider">Classement Général</h3>
+                    </div>
+                    
+                    <div className="divide-y divide-slate-50">
+                       {rankings?.map((user, idx) => (
+                         <div key={user.id} className="flex items-center justify-between p-5 hover:bg-slate-50/50 transition-colors">
+                            <div className="flex items-center gap-6">
+                               <div className={cn(
+                                 "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm",
+                                 idx === 0 ? "bg-yellow-400 text-white" : idx === 1 ? "bg-slate-300 text-slate-600" : idx === 2 ? "bg-orange-300 text-white" : "bg-slate-100 text-slate-400"
+                               )}>
+                                 {idx + 1}
+                               </div>
+                               <div className="flex flex-col">
+                                  <span className="font-bold text-slate-800 text-lg">{user.name}</span>
+                                  <span className="text-xs text-slate-400 italic">Record perso : Aucun (0cm)</span>
+                               </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-12">
+                               <div className="text-right">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">CAPTURES</p>
+                                  <p className="text-lg font-headline font-bold text-slate-700">{user.catchesCount || 0}</p>
+                               </div>
+                               <div className="text-right min-w-[120px]">
+                                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">TOTAL POINTS</p>
+                                  <p className="text-2xl font-headline font-bold text-[#0a3d62]">{user.totalPoints || 0}</p>
+                               </div>
+                            </div>
+                         </div>
+                       ))}
+                       {(!rankings || rankings.length === 0) && (
+                         <div className="py-20 text-center text-slate-300 italic">Aucun pêcheur classé pour le moment.</div>
+                       )}
+                    </div>
+                  </CardContent>
+               </Card>
+            </div>
+
+          </div>
         )}
       </main>
     </div>

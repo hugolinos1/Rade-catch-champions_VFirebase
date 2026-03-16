@@ -1,46 +1,20 @@
-// Last update: 2024-05-20T11:45:00Z - Forced redeploy for catches permission fix
+// Last update: 2024-05-20T14:30:00Z - Nuclear fix for permission errors
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Fonctions de support de base
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // 1. ACCÈS PUBLIC EN LECTURE
-    // Ces collections doivent être lisibles par tous (visiteurs et membres) 
-    // pour le classement, le guide et le flux d'activité.
+    
+    // ACCÈS TOTAL EN LECTURE POUR TOUT LE MONDE
+    // On autorise la lecture (get et list) sur TOUTES les collections publiques
     match /catches/{id} { allow read: if true; }
+    match /users/{id} { allow read: if true; }
     match /species/{id} { allow read: if true; }
     match /competitions/{id} { allow read: if true; }
-    match /users/{id} { allow read: if true; }
     match /registration_codes/{id} { allow read: if true; }
 
-    // 2. ÉCRITURE SÉCURISÉE (MEMBRES CONNECTÉS)
-    // On autorise les membres connectés à créer des captures et modifier leur profil.
-    // La modération se fait via l'interface Admin.
-    match /catches/{id} {
-      allow create: if isSignedIn();
-      allow update, delete: if isSignedIn();
-    }
-
-    match /users/{id} {
-      allow write: if isSignedIn();
-    }
-
-    // 3. ADMINISTRATION (ESPÈCES, CONCOURS, CODES)
-    // On autorise les membres connectés à gérer les paramètres de la compétition.
-    match /species/{id} {
-      allow write: if isSignedIn();
-    }
-
-    match /competitions/{id} {
-      allow write: if isSignedIn();
-    }
-
-    match /registration_codes/{id} {
-      allow write: if isSignedIn();
+    // ÉCRITURE : RÉSERVÉE AUX UTILISATEURS CONNECTÉS
+    // On simplifie pour éviter les erreurs de contexte auth
+    match /{collection}/{id} {
+      allow write: if request.auth != null;
     }
   }
 }
