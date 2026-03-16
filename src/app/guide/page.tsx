@@ -21,13 +21,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles } from 'lucide-react';
+import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { FishSpecies, BonusPointThreshold } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
+import { useCollection, useFirestore, useMemoFirebase, useUser, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 const EMPTY_FISH: FishSpecies = {
   id: '',
@@ -35,8 +37,6 @@ const EMPTY_FISH: FishSpecies = {
   scientificName: '',
   pointsPerCm: 10,
   minSize: 0,
-  maxSize: 0,
-  averageSize: '',
   description: '',
   imageUrl: 'https://picsum.photos/seed/new-fish/600/400',
   habitat: '',
@@ -50,89 +50,25 @@ const EMPTY_FISH: FishSpecies = {
   bonusPoints: []
 };
 
-const MOCK_FISH: FishSpecies[] = [
-  {
-    id: '1',
-    name: 'Anguille',
-    scientificName: 'Anguilla anguilla',
-    rarity: 'Très rare',
-    pointsPerCm: 12,
-    minSize: 37,
-    maxSize: 150,
-    averageSize: '40-80 cm',
-    description: "L'anguille européenne est un poisson migrateur catadrome qui naît en mer des Sargasses et grandit en eau douce. Espèce en danger critique, sa pêche est strictement réglementée.",
-    imageUrl: 'https://picsum.photos/seed/eel/600/400',
-    habitat: 'Estuaires, rivières, zones vaseuses',
-    diet: 'Petits crustacés, vers, poissons',
-    techniques: ['Pêche de nuit', 'Pêche au posé'],
-    spots: ['Estuaires', 'Elorn'],
-    bonusPoints: [
-      { threshold: 40, points: 15 },
-      { threshold: 60, points: 25 }
-    ],
-    keyFeatures: 'Corps allongé, peau visqueuse',
-    fishingTips: 'Utilisez des vers de terreau.',
-    eligibilityCriteria: 'Minimum 37cm'
-  },
-  {
-    id: '2',
-    name: 'Bar Franc',
-    scientificName: 'Dicentrarchus labrax',
-    rarity: 'Commun',
-    pointsPerCm: 10,
-    minSize: 42,
-    maxSize: 100,
-    averageSize: '40-70 cm',
-    description: 'Le Bar Franc est le poisson roi de la Rade. Puissant et combatif.',
-    imageUrl: 'https://picsum.photos/seed/bass/600/400',
-    habitat: 'Zones rocheuses, courants forts',
-    diet: 'Petits poissons, crustacés',
-    techniques: ['Leurre de surface', 'Poisson nageur'],
-    spots: ['Pointe du Diable', 'Le Caro'],
-    bonusPoints: [
-      { threshold: 50, points: 10 },
-      { threshold: 70, points: 30 }
-    ],
-    keyFeatures: 'Dos gris bleuté, opercule avec épine',
-    fishingTips: 'Pêchez dans l\'écume.',
-    eligibilityCriteria: 'Minimum 42cm'
-  },
-  {
-    id: '3',
-    name: 'Dorade Royale',
-    scientificName: 'Sparus aurata',
-    rarity: 'Rare',
-    pointsPerCm: 15,
-    minSize: 30,
-    maxSize: 70,
-    averageSize: '30-50 cm',
-    description: 'Reconnaissable à son bandeau doré entre les yeux.',
-    imageUrl: 'https://picsum.photos/seed/bream/600/400',
-    habitat: 'Fonds sableux, herbiers',
-    diet: 'Mollusques, vers',
-    techniques: ['Bibi', 'Vers marins'],
-    spots: ['Anse du Poulmic', 'Plougastel'],
-    bonusPoints: [
-      { threshold: 40, points: 20 },
-      { threshold: 50, points: 40 }
-    ],
-    keyFeatures: 'Bandeau doré, tache noire operculaire',
-    fishingTips: 'Appâts frais essentiels.',
-    eligibilityCriteria: 'Minimum 30cm'
-  }
-];
-
 export default function GuidePage() {
   const { toast } = useToast();
+  const firestore = useFirestore();
+  const { user } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
-  const [fishList, setFishList] = useState<FishSpecies[]>(MOCK_FISH);
-  const [isAdmin] = useState(true); // Mock admin status
+  
+  // Real-time collection sync
+  const fishQuery = useMemoFirebase(() => collection(firestore, 'fish_species'), [firestore]);
+  const { data: fishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
+
+  // For now, let's assume any logged in user can edit for the MVP, 
+  // though in production we'd check against /roles_admin
+  const isAdmin = !!user; 
   
   const [editingFish, setEditingFish] = useState<FishSpecies | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
 
-  const filteredFish = fishList.filter(fish => 
+  const filteredFish = (fishList || []).filter(fish => 
     fish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -143,32 +79,36 @@ export default function GuidePage() {
   };
 
   const handleCreateClick = () => {
-    setEditingFish({ ...EMPTY_FISH, id: '' });
+    setEditingFish({ ...EMPTY_FISH });
     setIsDialogOpen(true);
   };
 
   const handleSaveFish = () => {
     if (!editingFish) return;
     
-    if (editingFish.id) {
-      // Update
-      setFishList(prev => prev.map(f => f.id === editingFish.id ? editingFish : f));
-      toast({
-        title: "Fiche mise à jour",
-        description: `Les modifications pour ${editingFish.name} ont été enregistrées.`
-      });
-    } else {
-      // Create
-      const newFish = { ...editingFish, id: Date.now().toString() };
-      setFishList(prev => [...prev, newFish]);
-      toast({
-        title: "Nouvelle espèce créée",
-        description: `${newFish.name} a été ajouté au guide.`
-      });
-    }
+    const docId = editingFish.id || doc(collection(firestore, 'fish_species')).id;
+    const finalFish = { ...editingFish, id: docId };
+    
+    const docRef = doc(firestore, 'fish_species', docId);
+    setDocumentNonBlocking(docRef, finalFish, { merge: true });
+    
+    toast({
+      title: editingFish.id ? "Fiche mise à jour" : "Nouvelle espèce créée",
+      description: `${finalFish.name} a été enregistré dans le guide.`
+    });
     
     setIsDialogOpen(false);
     setEditingFish(null);
+  };
+
+  const handleDeleteFish = (id: string, name: string) => {
+    if (!confirm(`Supprimer ${name} ?`)) return;
+    const docRef = doc(firestore, 'fish_species', id);
+    deleteDocumentNonBlocking(docRef);
+    toast({
+      title: "Espèce supprimée",
+      description: `${name} a été retiré du guide.`
+    });
   };
 
   const handleAIGenerate = async () => {
@@ -311,101 +251,118 @@ export default function GuidePage() {
           </div>
         </header>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredFish.map((fish) => (
-            <Card key={fish.id} className="relative overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl">
-              {isAdmin && (
-                <Button 
-                  variant="secondary" 
-                  size="icon" 
-                  className="absolute top-4 left-4 z-10 bg-white/80 backdrop-blur-sm border shadow-sm hover:bg-primary hover:text-white"
-                  onClick={() => handleEditClick(fish)}
-                >
-                  <Edit className="h-4 w-4" />
-                </Button>
-              )}
-
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <div className={cn(isAdmin && "pl-12")}>
-                    <CardTitle className="font-headline text-2xl font-bold text-slate-900">{fish.name}</CardTitle>
-                    <p className="text-sm italic text-slate-400 font-medium">{fish.scientificName}</p>
+        {isCollectionLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredFish.map((fish) => (
+              <Card key={fish.id} className="relative overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl">
+                {isAdmin && (
+                  <div className="absolute top-4 left-4 z-10 flex gap-2">
+                    <Button 
+                      variant="secondary" 
+                      size="icon" 
+                      className="bg-white/80 backdrop-blur-sm border shadow-sm hover:bg-primary hover:text-white"
+                      onClick={() => handleEditClick(fish)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="icon" 
+                      className="bg-red-500/80 backdrop-blur-sm shadow-sm text-white hover:bg-red-600"
+                      onClick={() => handleDeleteFish(fish.id, fish.name)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  {fish.rarity && (
-                    <Badge className={cn(
-                      "rounded-full px-3 py-1 text-[10px] font-bold tracking-wider uppercase",
-                      fish.rarity === 'Très rare' ? "bg-cyan-900 hover:bg-cyan-950 text-white" : 
-                      fish.rarity === 'Rare' ? "bg-amber-500 hover:bg-amber-600 text-white" : 
-                      "bg-slate-200 hover:bg-slate-300 text-slate-700"
-                    )}>
-                      {fish.rarity}
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-6">
-                <div className="relative h-44 w-full rounded-2xl overflow-hidden bg-slate-100">
-                  <Image 
-                    src={fish.imageUrl} 
-                    alt={fish.name} 
-                    fill 
-                    className="object-cover"
-                    data-ai-hint="fish photo"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Ruler className="h-4 w-4 text-orange-400" />
-                      <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
+                )}
+
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-start">
+                    <div className={cn(isAdmin && "pl-20")}>
+                      <CardTitle className="font-headline text-2xl font-bold text-slate-900">{fish.name}</CardTitle>
+                      <p className="text-sm italic text-slate-400 font-medium">{fish.scientificName}</p>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-600">
-                      <Target className="h-4 w-4 text-orange-400" />
-                      <span className="text-sm font-semibold">Moy: {fish.averageSize}</span>
+                    {fish.rarity && (
+                      <Badge className={cn(
+                        "rounded-full px-3 py-1 text-[10px] font-bold tracking-wider uppercase",
+                        fish.rarity === 'Très rare' ? "bg-cyan-900 hover:bg-cyan-950 text-white" : 
+                        fish.rarity === 'Rare' ? "bg-amber-500 hover:bg-amber-600 text-white" : 
+                        "bg-slate-200 hover:bg-slate-300 text-slate-700"
+                      )}>
+                        {fish.rarity}
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+                
+                <CardContent className="space-y-6">
+                  <div className="relative h-44 w-full rounded-2xl overflow-hidden bg-slate-100">
+                    <Image 
+                      src={fish.imageUrl || 'https://picsum.photos/seed/fish/600/400'} 
+                      alt={fish.name} 
+                      fill 
+                      className="object-cover"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-slate-600">
+                        <Ruler className="h-4 w-4 text-orange-400" />
+                        <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
+                      </div>
+                      {fish.averageSize && (
+                        <div className="flex items-center gap-2 text-slate-600">
+                          <Target className="h-4 w-4 text-orange-400" />
+                          <span className="text-sm font-semibold">Moy: {fish.averageSize}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">Techniques:</p>
+                      <div className="flex flex-col gap-1.5">
+                        {fish.techniques?.map((tech, i) => (
+                          <div key={i} className="bg-cyan-50 text-cyan-700 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-cyan-100/50">
+                            {tech}
+                          </div>
+                        )) || <span className="text-xs text-muted-foreground italic">Libre</span>}
+                      </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">Techniques:</p>
-                    <div className="flex flex-col gap-1.5">
-                      {fish.techniques?.map((tech, i) => (
-                        <div key={i} className="bg-cyan-50 text-cyan-700 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-cyan-100/50">
-                          {tech}
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-2 text-slate-800 font-bold uppercase text-xs">
+                      <MapPin className="h-4 w-4 text-orange-400" />
+                      Spots:
                     </div>
+                    <p className="text-xs text-slate-500 font-medium pl-6">
+                      {fish.spots?.join(', ') || 'Non renseigné'}
+                    </p>
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-slate-800 font-bold uppercase text-xs">
-                    <MapPin className="h-4 w-4 text-orange-400" />
-                    Spots:
-                  </div>
-                  <p className="text-xs text-slate-500 font-medium pl-6">
-                    {fish.spots?.join(', ') || 'Non renseigné'}
-                  </p>
-                </div>
-
-                {fish.bonusPoints && fish.bonusPoints.length > 0 && (
-                  <div className="bg-cyan-50/50 rounded-2xl p-4 space-y-3 border border-cyan-100/30">
-                    <p className="text-sm font-bold text-cyan-900 tracking-tight">Points Bonus:</p>
-                    <div className="space-y-2">
-                      {fish.bonusPoints.map((bonus, i) => (
-                        <div key={i} className="flex justify-between items-center text-xs font-bold">
-                          <span className="text-slate-500">+ {bonus.threshold} cm:</span>
-                          <span className="text-orange-500">{bonus.points} pts</span>
-                        </div>
-                      ))}
+                  {fish.bonusPoints && fish.bonusPoints.length > 0 && (
+                    <div className="bg-cyan-50/50 rounded-2xl p-4 space-y-3 border border-cyan-100/30">
+                      <p className="text-sm font-bold text-cyan-900 tracking-tight">Points Bonus:</p>
+                      <div className="space-y-2">
+                        {fish.bonusPoints.map((bonus, i) => (
+                          <div key={i} className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-slate-500">+ {bonus.threshold} cm:</span>
+                            <span className="text-orange-500">{bonus.points} pts</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Edit/Create Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -477,7 +434,7 @@ export default function GuidePage() {
                   <div className="space-y-2">
                     <Label>Taille Moyenne</Label>
                     <Input 
-                      value={editingFish.averageSize} 
+                      value={editingFish.averageSize || ''} 
                       onChange={e => setEditingFish({...editingFish, averageSize: e.target.value})}
                       placeholder="Ex: 40-70 cm"
                     />
