@@ -10,10 +10,8 @@ import {
   Fish, 
   Crown, 
   Loader2, 
-  User as UserIcon, 
   TrendingUp,
-  Scale,
-  Calendar
+  Scale
 } from 'lucide-react';
 import { UserProfile, Catch, Contest } from '@/lib/types';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
@@ -24,17 +22,18 @@ import Image from 'next/image';
 export default function ClassementPage() {
   const firestore = useFirestore();
 
-  // 1. Récupération des participants (classés par points)
+  // 1. Récupération de tous les participants classés par points
   const usersQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'users'), orderBy('totalPoints', 'desc'), limit(50)), 
+    query(collection(firestore, 'users'), orderBy('totalPoints', 'desc'), limit(100)), 
   [firestore]);
 
   // 2. Récupération de la plus grosse prise (Record Big Fish)
+  // Note: Simplification de la requête (sans where status==approved) pour éviter les erreurs d'index composite
   const catchesQuery = useMemoFirebase(() => 
-    query(collection(firestore, 'catches'), where('status', '==', 'approved'), orderBy('size', 'desc'), limit(1)), 
+    query(collection(firestore, 'catches'), orderBy('size', 'desc'), limit(1)), 
   [firestore]);
 
-  // 3. Récupération du concours actif pour le titre
+  // 3. Récupération du concours actif
   const contestQuery = useMemoFirebase(() => 
     query(collection(firestore, 'competitions'), where('status', '==', 'active'), limit(1)), 
   [firestore]);
@@ -44,7 +43,6 @@ export default function ClassementPage() {
   const { data: contests } = useCollection<Contest>(contestQuery);
 
   const top3 = users?.slice(0, 3) || [];
-  const others = users?.slice(3) || [];
   const bigFish = recordCatches?.[0];
   const contestName = contests?.[0]?.name || "Rade Catch Champions";
 
@@ -54,7 +52,7 @@ export default function ClassementPage() {
         <Navigation />
         <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-slate-500 font-medium italic">Chargement du Tableau d'Honneur...</p>
+          <p className="text-slate-500 font-medium italic">Préparation du Tableau d'Honneur...</p>
         </div>
       </div>
     );
@@ -74,7 +72,7 @@ export default function ClassementPage() {
             Tableau d'Honneur
           </h1>
           <p className="text-slate-500 max-w-2xl mx-auto text-lg md:text-xl font-medium">
-            Les meilleurs pêcheurs de la Rade de Brest s'affrontent pour l'excellence.
+            L'élite de la pêche en Rade de Brest s'affiche ici.
           </p>
         </header>
 
@@ -82,7 +80,7 @@ export default function ClassementPage() {
         <section className="mb-32 relative">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end max-w-5xl mx-auto px-4">
             
-            {/* 2ème PLACE (Argent) */}
+            {/* 2ème PLACE */}
             <div className="order-2 md:order-1">
               <Card className="border-none shadow-xl bg-[#E2E8F0] rounded-[3rem] overflow-hidden text-center h-[380px] flex flex-col justify-center transition-transform hover:scale-[1.02]">
                 <CardContent className="pt-8 space-y-4">
@@ -97,13 +95,13 @@ export default function ClassementPage() {
                     <p className="text-[10px] font-bold text-[#1E4E6E]/50 uppercase tracking-widest mt-1">POINTS TOTAL</p>
                   </div>
                   <div className="pt-6 border-t border-[#1E4E6E]/10">
-                    <p className="text-[10px] font-bold text-[#1E4E6E]/60 uppercase tracking-widest">{top3[1]?.catchesCount || 0} CAPTURES</p>
+                    <p className="text-[10px] font-bold text-[#1E4E6E]/60 uppercase tracking-widest">{top3[1]?.catchesCount || 0} PRISES</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* 1ère PLACE (Or) */}
+            {/* 1ère PLACE */}
             <div className="order-1 md:order-2 scale-105 md:scale-110 z-10">
               <Card className="border-none shadow-2xl bg-[#FF8A50] rounded-[4rem] overflow-hidden text-center h-[480px] flex flex-col justify-center relative border-4 border-white/20">
                 <div className="absolute top-8 right-8 opacity-10">
@@ -121,13 +119,13 @@ export default function ClassementPage() {
                     <p className="text-xs font-bold opacity-70 uppercase tracking-[0.3em] mt-3">CHAMPION DE LA RADE</p>
                   </div>
                   <div className="pt-8 border-t border-white/10">
-                    <p className="text-sm font-bold uppercase tracking-widest">{top3[0]?.catchesCount || 0} PRISES CERTIFIÉES</p>
+                    <p className="text-sm font-bold uppercase tracking-widest">{top3[0]?.catchesCount || 0} CAPTURES</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* 3ème PLACE (Bronze) */}
+            {/* 3ème PLACE */}
             <div className="order-3">
               <Card className="border-none shadow-xl bg-[#E2E8F0] rounded-[2.5rem] overflow-hidden text-center h-[340px] flex flex-col justify-center transition-transform hover:scale-[1.02]">
                 <CardContent className="pt-8 space-y-4">
@@ -142,7 +140,7 @@ export default function ClassementPage() {
                     <p className="text-[10px] font-bold text-[#1E4E6E]/50 uppercase tracking-widest mt-1">POINTS TOTAL</p>
                   </div>
                   <div className="pt-6 border-t border-[#1E4E6E]/10">
-                    <p className="text-[10px] font-bold text-[#1E4E6E]/60 uppercase tracking-widest">{top3[2]?.catchesCount || 0} CAPTURES</p>
+                    <p className="text-[10px] font-bold text-[#1E4E6E]/60 uppercase tracking-widest">{top3[2]?.catchesCount || 0} PRISES</p>
                   </div>
                 </CardContent>
               </Card>
@@ -169,7 +167,7 @@ export default function ClassementPage() {
                </div>
 
                <div className="grid md:grid-cols-2 gap-16 items-center">
-                  <div className="relative aspect-[4/3] rounded-[3rem] overflow-hidden border-8 border-slate-800 shadow-2xl">
+                  <div className="relative aspect-[4/3] rounded-[3rem] overflow-hidden border-8 border-slate-800 shadow-2xl bg-slate-900">
                     {bigFish?.imageUrl ? (
                       <Image 
                         src={bigFish.imageUrl} 
@@ -178,7 +176,7 @@ export default function ClassementPage() {
                         className="object-cover"
                       />
                     ) : (
-                      <div className="h-full flex flex-col items-center justify-center bg-slate-900 text-slate-700">
+                      <div className="h-full flex flex-col items-center justify-center text-slate-700">
                         <Fish className="h-20 w-20 mb-4" />
                         <p className="text-[10px] font-bold uppercase tracking-[0.4em]">En attente d'un record</p>
                       </div>
@@ -244,7 +242,7 @@ export default function ClassementPage() {
                            </div>
                            <div className="flex flex-col">
                               <span className="font-bold text-slate-800 text-2xl">{user.name}</span>
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">MEMBRE CERTIFIÉ</span>
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">PÊCHEUR CERTIFIÉ</span>
                            </div>
                         </div>
                         
