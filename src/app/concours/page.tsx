@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Send, History, Scale, Anchor, Loader2, Camera, MapPin, X, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Catch, UserProfile, FishSpecies, Contest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useStorage } from '@/firebase';
@@ -42,11 +42,17 @@ export default function ConcoursPage() {
   [firestore]);
 
   const { data: activeContests } = useCollection<Contest>(activeContestQuery);
-  const { data: species } = useCollection<FishSpecies>(fishQuery);
+  const { data: rawSpecies } = useCollection<FishSpecies>(fishQuery);
   const { data: allUsers } = useCollection<UserProfile>(usersQuery);
   const { data: recentCatches, isLoading: loadingCatches } = useCollection<Catch>(recentCatchesQuery);
 
   const activeContest = activeContests?.[0];
+
+  // Alphabetical sort for species
+  const species = useMemo(() => {
+    if (!rawSpecies) return [];
+    return [...rawSpecies].sort((a, b) => a.name.localeCompare(b.name));
+  }, [rawSpecies]);
 
   // Form State
   const [selectedFisherman, setSelectedFisherman] = useState(currentUser?.uid || '');
@@ -85,7 +91,6 @@ export default function ConcoursPage() {
     try {
       let imageUrl = '';
 
-      // Upload image to Storage if selected
       if (selectedFile) {
         const storageRef = ref(storage, `catches/${Date.now()}_${selectedFile.name}`);
         const snapshot = await uploadBytes(storageRef, selectedFile);
@@ -118,7 +123,6 @@ export default function ConcoursPage() {
 
       toast({ title: "Capture envoyée !", description: "Votre prise a été enregistrée avec succès." });
       
-      // Reset form
       setLength('');
       setWeight('');
       setLocation('');
@@ -155,7 +159,6 @@ export default function ConcoursPage() {
               </CardHeader>
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* Photo Section */}
                   <div className="space-y-4">
                     <Label className="text-slate-600 font-bold">Photo de la prise (Obligatoire)</Label>
                     {!previewUrl ? (
@@ -212,7 +215,7 @@ export default function ConcoursPage() {
                           <SelectValue placeholder="Choisir l'espèce" />
                         </SelectTrigger>
                         <SelectContent>
-                          {species?.map(s => (
+                          {species.map(s => (
                             <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -308,14 +311,23 @@ export default function ConcoursPage() {
             </Card>
 
             <Card className="border-none shadow bg-white">
-              <CardHeader><CardTitle className="font-headline text-lg">Coefficients Points</CardTitle></CardHeader>
+              <CardHeader>
+                <CardTitle className="font-headline text-lg">Coefficients Points</CardTitle>
+              </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                {species?.slice(0, 10).map(s => (
+                {species.length > 0 ? species.map(s => (
                   <div key={s.id} className="flex justify-between border-b border-slate-100 pb-2">
-                    <span className="font-medium">{s.name}</span>
-                    <span className="font-bold text-primary">{s.pointsPerCm} pts/cm</span>
+                    <span className="font-medium text-slate-700">{s.name}</span>
+                    <span className="font-bold text-primary">{s.pointsPerCm || 10} pts/cm</span>
                   </div>
-                ))}
+                )) : (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="animate-spin h-5 w-5 text-slate-200" />
+                  </div>
+                )}
+                {species.length === 0 && !loadingCatches && (
+                  <p className="text-xs text-slate-400 italic">Aucune donnée disponible.</p>
+                )}
               </CardContent>
             </Card>
           </div>
