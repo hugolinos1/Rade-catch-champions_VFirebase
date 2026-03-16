@@ -1,4 +1,3 @@
-
 import { Navigation } from '@/components/Navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +27,7 @@ export default function Home() {
                     Saisir une Prise <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="text-white border-white hover:bg-white/10 font-headline font-bold">
+                <Button asChild size="lg" variant="outline" className="bg-transparent text-white border-white hover:bg-white hover:text-primary font-headline font-bold">
                   <Link href="/guide">Le Guide des Poissons</Link>
                 </Button>
               </div>
