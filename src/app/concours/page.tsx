@@ -14,7 +14,7 @@ import { useState, useRef } from 'react';
 import { Catch, UserProfile, FishSpecies, Contest } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useStorage } from '@/firebase';
-import { collection, query, orderBy, limit, where } from 'firebase/firestore';
+import { collection, query, orderBy, limit, where, doc } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -36,10 +36,10 @@ export default function ConcoursPage() {
   [firestore]);
 
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
-  const usersQuery = useMemoFirebase(() => currentUser ? collection(firestore, 'users') : null, [firestore, currentUser]);
+  const usersQuery = useMemoFirebase(() => collection(firestore, 'users'), [firestore]);
   const recentCatchesQuery = useMemoFirebase(() => 
-    currentUser ? query(collection(firestore, 'catches'), orderBy('date', 'desc'), limit(10)) : null, 
-  [firestore, currentUser]);
+    query(collection(firestore, 'catches'), orderBy('date', 'desc'), limit(10)), 
+  [firestore]);
 
   const { data: activeContests } = useCollection<Contest>(activeContestQuery);
   const { data: species } = useCollection<FishSpecies>(fishQuery);
@@ -75,18 +75,23 @@ export default function ConcoursPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedFisherman || !selectedFishId || !length || !activeContest) return;
+    if (!selectedFisherman || !selectedFishId || !length || !activeContest) {
+      toast({ variant: "destructive", title: "Champs manquants", description: "Veuillez remplir tous les champs obligatoires." });
+      return;
+    }
 
     setIsSubmitting(true);
     
     try {
-      let imageUrl = 'https://picsum.photos/seed/catch/400/300'; // Default
+      let imageUrl = '';
 
       // Upload image to Storage if selected
       if (selectedFile) {
         const storageRef = ref(storage, `catches/${Date.now()}_${selectedFile.name}`);
         const snapshot = await uploadBytes(storageRef, selectedFile);
         imageUrl = await getDownloadURL(snapshot.ref);
+      } else {
+        throw new Error("Une photo est obligatoire pour valider la prise.");
       }
 
       const fisher = allUsers?.find(u => u.id === selectedFisherman);
@@ -95,14 +100,14 @@ export default function ConcoursPage() {
 
       const newCatch: Omit<Catch, 'id'> = {
         anglerId: selectedFisherman,
-        anglerName: fisher?.name || (selectedFisherman === currentUser?.uid ? 'Moi' : 'Anonyme'),
+        anglerName: fisher?.name || 'Inconnu',
         competitionId: activeContest.id,
         fishId: selectedFishId,
         fishName: fish?.name || 'Inconnu',
         size: sizeNum,
         weight: parseFloat(weight) || 0,
         imageUrl: imageUrl,
-        date: new Date().toISOString().split('T')[0], // YYYY-MM-DD as in screenshot
+        date: new Date().toISOString(),
         points: (fish?.pointsPerCm || 10) * sizeNum,
         status: 'pending',
         location: location
@@ -111,16 +116,15 @@ export default function ConcoursPage() {
       const catchesCol = collection(firestore, 'catches');
       addDocumentNonBlocking(catchesCol, newCatch);
 
-      toast({ title: "Capture envoyée !", description: "En attente de validation." });
+      toast({ title: "Capture envoyée !", description: "Votre prise a été enregistrée avec succès." });
       
       // Reset form
       setLength('');
       setWeight('');
       setLocation('');
       clearFile();
-    } catch (error) {
-      console.error(error);
-      toast({ variant: "destructive", title: "Erreur", description: "Impossible d'envoyer la capture." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erreur", description: error.message || "Impossible d'envoyer la capture." });
     } finally {
       setIsSubmitting(false);
     }
@@ -134,20 +138,20 @@ export default function ConcoursPage() {
         <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <Badge variant="outline" className="mb-2 bg-primary/10 text-primary border-primary/20">
-              <Anchor className="h-3 w-3 mr-1" /> {activeContest?.name || "Chargement..."}
+              <Anchor className="h-3 w-3 mr-1" /> {activeContest?.name || "Concours en cours"}
             </Badge>
-            <h1 className="font-headline text-4xl font-bold">{activeContest ? activeContest.name : "Concours Actif"}</h1>
+            <h1 className="font-headline text-4xl font-bold">{activeContest ? activeContest.name : "Rade Catch Champions"}</h1>
           </div>
         </header>
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <Card className="shadow-lg border-none">
+            <Card className="shadow-lg border-none overflow-hidden">
               <CardHeader className="bg-primary/5">
                 <CardTitle className="font-headline flex items-center gap-2">
                   <Send className="h-5 w-5 text-primary" /> Nouvelle Capture
                 </CardTitle>
-                <CardDescription>Saisissez les détails et joignez une photo.</CardDescription>
+                <CardDescription>Saisissez les détails et prenez une photo pour preuve.</CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -157,24 +161,22 @@ export default function ConcoursPage() {
                     {!previewUrl ? (
                       <div 
                         onClick={() => fileInputRef.current?.click()}
-                        className="border-2 border-dashed border-slate-200 rounded-2xl h-48 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50"
+                        className="border-2 border-dashed border-slate-200 rounded-2xl h-56 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50"
                       >
-                        <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center mb-2">
-                          <Camera className="h-6 w-6 text-primary" />
+                        <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
+                          <Camera className="h-7 w-7 text-primary" />
                         </div>
-                        <span className="text-sm font-medium text-slate-500">Prendre une photo ou choisir un fichier</span>
-                        <span className="text-[10px] text-slate-400 mt-1">Format recommandé : JPG, PNG</span>
+                        <span className="text-sm font-bold text-slate-700">Prendre une photo</span>
+                        <span className="text-xs text-slate-400 mt-1">Cliquez pour ouvrir l'appareil photo</span>
                       </div>
                     ) : (
-                      <div className="relative rounded-2xl overflow-hidden h-64 shadow-md group">
+                      <div className="relative rounded-2xl overflow-hidden h-72 shadow-md group">
                         <Image src={previewUrl} alt="Preview" fill className="object-cover" />
-                        <button 
-                          type="button"
-                          onClick={clearFile}
-                          className="absolute top-3 right-3 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded-full backdrop-blur-sm transition-colors"
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                           <Button type="button" variant="destructive" size="sm" onClick={clearFile} className="gap-2">
+                             <X className="h-4 w-4" /> Changer la photo
+                           </Button>
+                        </div>
                       </div>
                     )}
                     <input 
@@ -183,7 +185,7 @@ export default function ConcoursPage() {
                       className="hidden" 
                       onChange={handleFileChange} 
                       accept="image/*" 
-                      capture="environment" // This triggers camera on mobile
+                      capture="environment" 
                     />
                   </div>
 
@@ -191,7 +193,7 @@ export default function ConcoursPage() {
                     <div className="space-y-2">
                       <Label>Pêcheur</Label>
                       <Select value={selectedFisherman} onValueChange={setSelectedFisherman}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-slate-50 border-slate-200">
                           <SelectValue placeholder="Choisir le pêcheur" />
                         </SelectTrigger>
                         <SelectContent>
@@ -206,12 +208,12 @@ export default function ConcoursPage() {
                     <div className="space-y-2">
                       <Label>Espèce</Label>
                       <Select value={selectedFishId} onValueChange={setSelectedFishId}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-slate-50 border-slate-200">
                           <SelectValue placeholder="Choisir l'espèce" />
                         </SelectTrigger>
                         <SelectContent>
                           {species?.map(s => (
-                            <SelectItem key={s.id} value={s.id}>{s.name} ({s.minSize}cm min)</SelectItem>
+                            <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -220,27 +222,28 @@ export default function ConcoursPage() {
                     <div className="space-y-2">
                       <Label>Longueur (cm)</Label>
                       <div className="relative">
-                        <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input type="number" step="0.5" className="pl-10" value={length} onChange={e => setLength(e.target.value)} required />
+                        <Scale className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input type="number" step="0.5" className="pl-10 bg-slate-50 border-slate-200" value={length} onChange={e => setLength(e.target.value)} required placeholder="Ex: 45" />
                       </div>
                     </div>
 
                     <div className="space-y-2">
                       <Label>Poids (kg) - Optionnel</Label>
-                      <Input type="number" step="0.1" value={weight} onChange={e => setWeight(e.target.value)} />
+                      <Input type="number" step="0.1" className="bg-slate-50 border-slate-200" value={weight} onChange={e => setWeight(e.target.value)} placeholder="Ex: 1.2" />
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
                       <Label>Lieu de capture (Optionnel)</Label>
                       <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input className="pl-10" placeholder="Ex: Digue de la Marina" value={location} onChange={e => setLocation(e.target.value)} />
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <Input className="pl-10 bg-slate-50 border-slate-200" placeholder="Ex: Digue de la Marina" value={location} onChange={e => setLocation(e.target.value)} />
                       </div>
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full font-headline font-bold h-12" disabled={isSubmitting || !currentUser || !previewUrl}>
-                    {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Soumettre la capture"}
+                  <Button type="submit" className="w-full font-headline font-bold h-14 text-lg" disabled={isSubmitting || !previewUrl}>
+                    {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-5 w-5" />}
+                    {isSubmitting ? "Envoi en cours..." : "Soumettre la capture"}
                   </Button>
                 </form>
               </CardContent>
@@ -248,31 +251,35 @@ export default function ConcoursPage() {
 
             <div className="space-y-4">
               <h2 className="font-headline text-2xl font-bold flex items-center gap-2">
-                <History className="h-6 w-6 text-primary" /> Dernières Prises
+                <History className="h-6 w-6 text-primary" /> Vos Dernières Prises
               </h2>
               {loadingCatches ? (
                 <div className="flex justify-center py-10"><Loader2 className="animate-spin h-8 w-8 text-slate-200" /></div>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {recentCatches?.map((item) => (
-                    <Card key={item.id} className="overflow-hidden border-none shadow flex h-32">
-                      <div className="relative w-32 h-full">
+                  {recentCatches?.filter(c => c.anglerId === currentUser?.uid).map((item) => (
+                    <Card key={item.id} className="overflow-hidden border-none shadow-sm flex h-32 bg-white">
+                      <div className="relative w-32 h-full shrink-0">
                         <Image src={item.imageUrl || 'https://picsum.photos/seed/catch/400/300'} alt={item.fishName} fill className="object-cover" />
                       </div>
-                      <div className="flex-1 p-4 flex flex-col justify-between">
+                      <div className="flex-1 p-4 flex flex-col justify-between overflow-hidden">
                         <div>
-                          <p className="font-bold text-xs truncate">{item.anglerName}</p>
-                          <p className="text-primary font-headline font-bold">{item.fishName}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.size} cm • {item.points} pts</p>
+                          <p className="text-primary font-headline font-bold truncate">{item.fishName}</p>
+                          <p className="text-[11px] text-muted-foreground">{item.size} cm • {item.points} pts</p>
                         </div>
-                        <Badge variant={item.status === 'approved' ? 'default' : 'secondary'} className="w-fit text-[9px]">
-                          {item.status}
-                        </Badge>
+                        <div className="flex justify-between items-center">
+                          <Badge variant={item.status === 'approved' ? 'default' : 'secondary'} className="text-[9px] uppercase">
+                            {item.status}
+                          </Badge>
+                          <span className="text-[10px] text-slate-400">{new Date(item.date).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     </Card>
                   ))}
-                  {recentCatches?.length === 0 && (
-                    <p className="text-muted-foreground italic col-span-2 text-center py-8">Aucune capture récente.</p>
+                  {recentCatches?.filter(c => c.anglerId === currentUser?.uid).length === 0 && (
+                    <p className="text-muted-foreground italic col-span-2 text-center py-8 bg-white rounded-xl border-dashed border-2">
+                      Vous n'avez pas encore enregistré de captures pour ce concours.
+                    </p>
                   )}
                 </div>
               )}
@@ -280,13 +287,27 @@ export default function ConcoursPage() {
           </div>
 
           <div className="space-y-6">
-            <Card className="border-none shadow">
-              <CardHeader><CardTitle className="font-headline text-lg">Rappel des Points</CardTitle></CardHeader>
+             <Card className="border-none shadow bg-primary text-white">
+              <CardHeader>
+                <CardTitle className="font-headline text-lg flex items-center gap-2">
+                  <Anchor className="h-5 w-5" /> Règlement Rapide
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-xs space-y-3 opacity-90">
+                <p>1. La photo doit être prise sur un mètre gradué officiel.</p>
+                <p>2. Le poisson doit être vivant lors de la photo.</p>
+                <p>3. Les points sont calculés selon l'espèce (Taille x Coefficient).</p>
+                <p>4. La validation par l'admin peut prendre jusqu'à 24h.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="border-none shadow bg-white">
+              <CardHeader><CardTitle className="font-headline text-lg">Coefficients Points</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {species?.slice(0, 10).map(s => (
-                  <div key={s.id} className="flex justify-between border-b pb-1">
-                    <span>{s.name}</span>
-                    <span className="font-bold">{s.pointsPerCm} pts/cm</span>
+                  <div key={s.id} className="flex justify-between border-b border-slate-100 pb-2">
+                    <span className="font-medium">{s.name}</span>
+                    <span className="font-bold text-primary">{s.pointsPerCm} pts/cm</span>
                   </div>
                 ))}
               </CardContent>
