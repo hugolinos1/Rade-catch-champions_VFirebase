@@ -116,49 +116,57 @@ export default function GuidePage() {
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingFish) return;
 
     setIsUploading(true);
     
-    // Create a storage reference
-    const storageRef = ref(storage, `species/${Date.now()}_${file.name}`);
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    try {
+      const storageRef = ref(storage, `species/${Date.now()}_${file.name}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
 
-    // Monitor upload progress and status
-    uploadTask.on('state_changed', 
-      (snapshot) => {
-        // We could track progress here if needed
-      }, 
-      (error) => {
-        console.error("Upload error:", error);
-        setIsUploading(false);
-        toast({
-          variant: "destructive",
-          title: "Erreur de chargement",
-          description: "Le transfert a échoué. Vérifiez que Storage est activé dans votre console Firebase."
-        });
-      }, 
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          setEditingFish(prev => prev ? {
-            ...prev,
-            imageUrl: downloadURL
-          } : null);
-
-          toast({
-            title: "Image chargée",
-            description: "L'image a été stockée avec succès."
-          });
-        } catch (err) {
-          console.error("URL retrieval error:", err);
-        } finally {
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          // Progress monitoring if needed
+        }, 
+        (error) => {
+          console.error("Upload error detail:", error);
           setIsUploading(false);
+          toast({
+            variant: "destructive",
+            title: "Erreur de chargement",
+            description: "Le bucket Storage est introuvable ou mal configuré. Vérifiez l'activation dans la console Firebase."
+          });
+        }, 
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            setEditingFish(prev => prev ? {
+              ...prev,
+              imageUrl: downloadURL
+            } : null);
+
+            toast({
+              title: "Image chargée",
+              description: "L'image a été stockée avec succès."
+            });
+          } catch (err) {
+            console.error("URL retrieval error:", err);
+          } finally {
+            setIsUploading(false);
+          }
         }
-      }
-    );
+      );
+    } catch (err) {
+      console.error("Initial upload error:", err);
+      setIsUploading(false);
+      toast({
+        variant: "destructive",
+        title: "Erreur critique",
+        description: "Impossible d'initialiser le transfert vers Storage."
+      });
+    }
   };
 
   const handleAIGenerate = async () => {
