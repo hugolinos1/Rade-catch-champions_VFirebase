@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -133,10 +134,16 @@ export default function GuidePage() {
         (error) => {
           console.error("Upload error detail:", error);
           setIsUploading(false);
+          
+          let message = "Le bucket Storage est introuvable ou mal configuré.";
+          if (error.code === 'storage/unauthorized') message = "Permissions insuffisantes pour écrire dans Storage.";
+          if (error.code === 'storage/retry-limit-exceeded') message = "Le transfert a pris trop de temps. Réessayez.";
+          if (error.code === 'storage/project-not-found') message = "Projet Firebase non trouvé.";
+
           toast({
             variant: "destructive",
             title: "Erreur de chargement",
-            description: "Le bucket Storage est introuvable ou mal configuré. Vérifiez l'activation dans la console Firebase."
+            description: message + " Vérifiez l'activation dans la console Firebase."
           });
         }, 
         async () => {
