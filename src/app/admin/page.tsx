@@ -28,7 +28,6 @@ import {
   Trash2, 
   Plus, 
   Loader2,
-  ShieldCheck,
   Lock,
   Edit2,
   Camera,
@@ -37,18 +36,18 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  AlertCircle,
   Check,
   X,
   Fish,
   MapPin,
-  Scale
+  Scale,
+  ShieldCheck
 } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useStorage } from '@/firebase';
 import { doc, collection, query, where, orderBy, increment } from 'firebase/firestore';
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { UserProfile, InvitationCode, Contest, Catch, FishSpecies } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -165,6 +164,14 @@ export default function AdminPage() {
       setEditingUser(null);
       toast({ title: "Profil mis à jour", description: `Les modifications pour ${editingUser.name} ont été enregistrées.` });
     }, 500);
+  };
+
+  const handleDeleteUser = (id: string, name: string) => {
+    if (!isAdmin) return;
+    if (!confirm(`Supprimer définitivement l'utilisateur ${name} ?`)) return;
+    const userRef = doc(firestore, 'users', id);
+    deleteDocumentNonBlocking(userRef);
+    toast({ title: "Utilisateur supprimé" });
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,7 +312,6 @@ export default function AdminPage() {
     { id: 'access', label: 'Accès & Utilisateurs' },
     { id: 'competitions', label: 'Compétitions' },
     { id: 'captures', label: 'Gestion des Captures' },
-    { id: 'guide', label: 'Guide des Poissons' },
   ];
 
   if (loadingProfile) {
@@ -450,11 +456,13 @@ export default function AdminPage() {
                     ) : users?.map((u) => (
                       <div 
                         key={u.id} 
-                        onClick={() => handleEditUser(u)}
-                        className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-300 transition-all cursor-pointer group"
+                        className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-300 transition-all group relative"
                       >
                         <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
+                          <div 
+                            className="flex items-center gap-4 cursor-pointer flex-1"
+                            onClick={() => handleEditUser(u)}
+                          >
                             <Avatar className="h-10 w-10 border border-white shadow-sm">
                               <AvatarImage src={u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} />
                               <AvatarFallback><UserIcon className="h-5 w-5 text-slate-400" /></AvatarFallback>
@@ -475,7 +483,27 @@ export default function AdminPage() {
                               </span>
                             </div>
                           </div>
-                          <Edit2 className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-slate-400 hover:text-slate-600"
+                              onClick={() => handleEditUser(u)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-slate-300 hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteUser(u.id, u.name);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -873,17 +901,12 @@ export default function AdminPage() {
           </DialogContent>
         </Dialog>
 
-        {activeTab !== 'access' && activeTab !== 'competitions' && activeTab !== 'captures' && ( activeTab === 'guide' ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-            <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
-            <p className="text-slate-400 text-center px-4">Utilisez le module "Guide" dans la navigation pour gérer les poissons.</p>
-          </div>
-        ) : (
+        {activeTab !== 'access' && activeTab !== 'competitions' && activeTab !== 'captures' && (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
             <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
             <p className="text-slate-400">Le module {tabs.find(t => t.id === activeTab)?.label} est en cours de configuration.</p>
           </div>
-        ))}
+        )}
       </main>
     </div>
   );
