@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -22,7 +23,24 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Search, MapPin, Ruler, Target, Edit, Plus, Trash2, Fish as FishIcon, Sparkles, Loader2, ClipboardList, ImageIcon, Upload } from 'lucide-react';
+import { 
+  Search, 
+  MapPin, 
+  Ruler, 
+  Target, 
+  Edit, 
+  Plus, 
+  Trash2, 
+  Fish as FishIcon, 
+  Sparkles, 
+  Loader2, 
+  ClipboardList, 
+  ImageIcon, 
+  Upload,
+  Zap,
+  X,
+  Trophy
+} from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef } from 'react';
 import { FishSpecies, BonusPointThreshold } from '@/lib/types';
@@ -40,10 +58,12 @@ const EMPTY_FISH: FishSpecies = {
   scientificName: '',
   pointsPerCm: 10,
   minSize: 0,
+  maxSize: 0,
   description: '',
   imageUrl: '',
   habitat: '',
   diet: '',
+  averageSize: '',
   keyFeatures: '',
   fishingTips: '',
   eligibilityCriteria: '',
@@ -64,10 +84,12 @@ export default function GuidePage() {
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
   const { data: fishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
 
-  const isAdmin = !!user; 
+  const isAdmin = user?.uid === 'ANhg48llRKYGbHSQyS5883B0eL62' || !!user; // Simplifié pour le proto
   
   const [editingFish, setEditingFish] = useState<FishSpecies | null>(null);
+  const [viewingFish, setViewingFish] = useState<FishSpecies | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isAILoading, setIsAILoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isParseDialogOpen, setIsParseDialogOpen] = useState(false);
@@ -78,9 +100,15 @@ export default function GuidePage() {
     fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleEditClick = (fish: FishSpecies) => {
+  const handleEditClick = (e: React.MouseEvent, fish: FishSpecies) => {
+    e.stopPropagation();
     setEditingFish({ ...fish });
     setIsDialogOpen(true);
+  };
+
+  const handleViewDetails = (fish: FishSpecies) => {
+    setViewingFish(fish);
+    setIsDetailsOpen(true);
   };
 
   const handleCreateClick = () => {
@@ -106,7 +134,8 @@ export default function GuidePage() {
     setEditingFish(null);
   };
 
-  const handleDeleteFish = (id: string, name: string) => {
+  const handleDeleteFish = (e: React.MouseEvent, id: string, name: string) => {
+    e.stopPropagation();
     if (!confirm(`Supprimer ${name} ?`)) return;
     const docRef = doc(firestore, 'species', id);
     deleteDocumentNonBlocking(docRef);
@@ -121,76 +150,18 @@ export default function GuidePage() {
     if (!file || !editingFish) return;
 
     setIsUploading(true);
-    
     try {
       const storagePath = `species/${Date.now()}_${file.name}`;
       const storageRef = ref(storage, storagePath);
-      
       const snapshot = await uploadBytes(storageRef, file);
       const downloadURL = await getDownloadURL(snapshot.ref);
 
-      setEditingFish(prev => prev ? {
-        ...prev,
-        imageUrl: downloadURL
-      } : null);
-
-      toast({
-        title: "Photo ajoutée",
-        description: "L'image a été chargée avec succès."
-      });
-    } catch (error: any) {
-      console.error("Storage Error:", error);
-      toast({
-        variant: "destructive",
-        title: "Échec du chargement",
-        description: "Vérifiez la configuration CORS de votre bucket Google Cloud."
-      });
+      setEditingFish(prev => prev ? { ...prev, imageUrl: downloadURL } : null);
+      toast({ title: "Photo ajoutée", description: "L'image a été chargée." });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Échec du chargement." });
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const handleAIGenerate = async () => {
-    if (!editingFish?.name) {
-      toast({
-        variant: "destructive",
-        title: "Nom requis",
-        description: "Veuillez donner au moins un nom à l'espèce."
-      });
-      return;
-    }
-
-    setIsAILoading(true);
-    try {
-      const result = await generateFishDescription({
-        fishName: editingFish.name,
-        scientificName: editingFish.scientificName,
-        habitat: editingFish.habitat,
-        diet: editingFish.diet,
-        averageSize: editingFish.averageSize,
-        keyFeatures: editingFish.keyFeatures,
-        fishingTips: editingFish.fishingTips,
-        existingDescription: editingFish.description
-      });
-      
-      setEditingFish(prev => prev ? {
-        ...prev,
-        description: result.description
-      } : null);
-
-      toast({
-        title: "IA Succès",
-        description: "La description a été enrichie."
-      });
-    } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Erreur IA",
-        description: "Impossible de contacter l'assistant IA."
-      });
-    } finally {
-      setIsAILoading(false);
     }
   };
 
@@ -203,11 +174,18 @@ export default function GuidePage() {
       setIsParseDialogOpen(false);
       setIsDialogOpen(true);
       setRawText('');
-      toast({ title: "Importation Réussie", description: `Données de "${result.name}" extraites.` });
     } catch (error) {
-      toast({ variant: "destructive", title: "Erreur Import", description: "L'IA n'a pas pu analyser ce texte." });
+      toast({ variant: "destructive", title: "Erreur", description: "L'IA n'a pas pu analyser ce texte." });
     } finally {
       setIsAILoading(false);
+    }
+  };
+
+  const getRarityBadgeColor = (rarity: string | undefined) => {
+    switch (rarity) {
+      case 'Très rare': return 'bg-[#1e4e6e] text-white hover:bg-[#1e4e6e]';
+      case 'Rare': return 'bg-orange-500 text-white hover:bg-orange-500';
+      default: return 'bg-slate-400 text-white hover:bg-slate-400';
     }
   };
 
@@ -217,11 +195,9 @@ export default function GuidePage() {
       
       <main className="container mx-auto px-4 py-8">
         <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="text-center md:text-left">
-            <h1 className="font-headline text-4xl font-bold mb-4 text-slate-900">Guide des Poissons</h1>
-            <p className="text-muted-foreground text-lg max-w-2xl">
-              Fiches détaillées des espèces de la Rade de Brest.
-            </p>
+          <div>
+            <h1 className="font-headline text-4xl font-bold mb-2 text-slate-900">Guide des Poissons</h1>
+            <p className="text-muted-foreground text-lg">Explorez la biodiversité de la Rade de Brest.</p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -236,10 +212,10 @@ export default function GuidePage() {
             </div>
             {isAdmin && (
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsParseDialogOpen(true)} className="font-headline">
+                <Button variant="outline" onClick={() => setIsParseDialogOpen(true)}>
                   <ClipboardList className="h-4 w-4 mr-2" /> Import IA
                 </Button>
-                <Button onClick={handleCreateClick} className="font-headline font-bold">
+                <Button onClick={handleCreateClick} className="font-bold">
                   <Plus className="h-4 w-4 mr-2" /> Ajouter
                 </Button>
               </div>
@@ -248,60 +224,49 @@ export default function GuidePage() {
         </header>
 
         {isCollectionLoading ? (
-          <div className="flex justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
+          <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredFish.map((fish) => (
-              <Card key={fish.id} className="relative overflow-hidden border-none shadow-sm hover:shadow-md transition-shadow bg-white rounded-2xl">
-                {isAdmin && (
-                  <div className="absolute top-4 left-4 z-10 flex gap-2">
-                    <Button 
-                      variant="secondary" 
-                      size="icon" 
-                      className="bg-white/80 backdrop-blur-sm border shadow-sm hover:bg-primary hover:text-white"
-                      onClick={() => handleEditClick(fish)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="icon" 
-                      className="bg-red-500/80 backdrop-blur-sm shadow-sm text-white hover:bg-red-600"
-                      onClick={() => handleDeleteFish(fish.id, fish.name)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+              <Card 
+                key={fish.id} 
+                className="group relative overflow-hidden border-none shadow-sm hover:shadow-xl transition-all bg-white rounded-2xl cursor-pointer"
+                onClick={() => handleViewDetails(fish)}
+              >
+                <div className="relative h-48 w-full overflow-hidden">
+                  <Image 
+                    src={fish.imageUrl || 'https://picsum.photos/seed/fish/600/400'} 
+                    alt={fish.name} 
+                    fill 
+                    className="object-cover transition-transform group-hover:scale-105"
+                  />
+                  <div className="absolute top-3 right-3">
+                    <Badge className={cn("text-[10px] font-bold px-2 py-0.5", getRarityBadgeColor(fish.rarity))}>
+                      {fish.rarity || 'Commun'}
+                    </Badge>
                   </div>
-                )}
-
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-start">
-                    <div className={cn(isAdmin && "pl-20")}>
-                      <CardTitle className="font-headline text-2xl font-bold text-slate-900">{fish.name}</CardTitle>
-                      <p className="text-sm italic text-slate-400 font-medium">{fish.scientificName}</p>
-                    </div>
-                  </div>
-                </CardHeader>
+                </div>
                 
-                <CardContent className="space-y-6">
-                  <div className="relative h-44 w-full rounded-2xl overflow-hidden bg-slate-100">
-                    <Image 
-                      src={fish.imageUrl || 'https://picsum.photos/seed/fish/600/400'} 
-                      alt={fish.name} 
-                      fill 
-                      className="object-cover"
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-slate-600">
-                        <Ruler className="h-4 w-4 text-orange-400" />
-                        <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
-                      </div>
+                <CardContent className="p-5">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-headline text-xl font-bold text-slate-900">{fish.name}</h3>
+                      <p className="text-sm italic text-slate-400">{fish.scientificName}</p>
                     </div>
+                    {isAdmin && (
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="secondary" size="icon" className="h-8 w-8" onClick={(e) => handleEditClick(e, fish)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="destructive" size="icon" className="h-8 w-8" onClick={(e) => handleDeleteFish(e, fish.id, fish.name)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-600 mt-4 bg-slate-50 p-2 rounded-lg">
+                    <Ruler className="h-4 w-4 text-orange-400" />
+                    <span className="text-sm font-semibold">Maille: {fish.minSize} cm</span>
                   </div>
                 </CardContent>
               </Card>
@@ -309,109 +274,210 @@ export default function GuidePage() {
           </div>
         )}
 
-        <Dialog open={isParseDialogOpen} onOpenChange={setIsParseDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Importation par IA</DialogTitle>
-              <DialogDescription>
-                Collez n'importe quel texte contenant des informations sur un poisson.
-              </DialogDescription>
+        {/* DIALOG DETAILS (Fidèle à l'image Anguille) */}
+        <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-50">
+            <DialogHeader className="sr-only">
+              <DialogTitle>Détails de {viewingFish?.name}</DialogTitle>
+              <DialogDescription>Informations complètes sur l'espèce.</DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Textarea 
-                placeholder="Description du poisson..." 
-                className="min-h-[200px]"
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsParseDialogOpen(false)}>Annuler</Button>
-              <Button onClick={handleAIParse} disabled={isAILoading || !rawText.trim()}>
-                {isAILoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />} Analyser
-              </Button>
-            </DialogFooter>
+            
+            {viewingFish && (
+              <div className="relative">
+                <div className="p-8 bg-white">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <h2 className="font-headline text-4xl font-bold text-[#1e4e6e]">{viewingFish.name}</h2>
+                      <p className="text-lg italic text-slate-400 mt-1">{viewingFish.scientificName}</p>
+                    </div>
+                    <Badge className={cn("text-xs font-bold px-3 py-1", getRarityBadgeColor(viewingFish.rarity))}>
+                      {viewingFish.rarity}
+                    </Badge>
+                  </div>
+
+                  <div className="relative h-[300px] w-full rounded-2xl overflow-hidden shadow-inner mb-8 bg-slate-100">
+                    <Image src={viewingFish.imageUrl || 'https://picsum.photos/seed/fish/800/400'} alt={viewingFish.name} fill className="object-cover" />
+                  </div>
+
+                  <div className="grid md:grid-cols-3 gap-6 mb-8">
+                    {/* TAILLE */}
+                    <Card className="border-none bg-white shadow-sm rounded-xl">
+                      <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                        <Ruler className="h-5 w-5 text-orange-400" />
+                        <CardTitle className="text-lg font-bold text-[#1e4e6e]">Taille</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-1 text-sm">
+                        <p><span className="font-bold">Maille légale:</span> {viewingFish.minSize} cm</p>
+                        <p><span className="font-bold">Taille moyenne:</span> {viewingFish.averageSize || 'N/A'}</p>
+                        <p><span className="font-bold">Taille maximale:</span> {viewingFish.maxSize || 'N/A'} cm</p>
+                      </CardContent>
+                    </Card>
+
+                    {/* TECHNIQUES */}
+                    <Card className="border-none bg-[#e8f4f9] shadow-sm rounded-xl">
+                      <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                        <Zap className="h-5 w-5 text-orange-400" />
+                        <CardTitle className="text-lg font-bold text-[#1e4e6e]">Techniques</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-wrap gap-2">
+                          {viewingFish.techniques?.map((t, idx) => (
+                            <Badge key={idx} variant="secondary" className="bg-[#b7e2f0] text-[#1e4e6e] hover:bg-[#b7e2f0]">{t}</Badge>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* SPOTS */}
+                    <Card className="border-none bg-white shadow-sm rounded-xl">
+                      <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                        <MapPin className="h-5 w-5 text-orange-400" />
+                        <CardTitle className="text-lg font-bold text-[#1e4e6e]">Spots</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-1 text-sm">
+                          {viewingFish.spots?.map((s, idx) => (
+                            <li key={idx} className="flex items-center gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* POINTS BONUS */}
+                  <div className="bg-[#1e4e6e] rounded-2xl p-6 mb-8 text-white">
+                    <h3 className="font-headline text-xl font-bold flex items-center gap-2 mb-6">
+                      <Target className="h-6 w-6" /> Points Bonus
+                    </h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {viewingFish.bonusPoints?.map((bp, idx) => (
+                        <div key={idx} className="bg-white/10 rounded-xl p-4 text-center border border-white/20">
+                          <p className="text-3xl font-bold">{bp.points}</p>
+                          <p className="text-sm opacity-80">+ {bp.threshold} cm</p>
+                        </div>
+                      ))}
+                      {(!viewingFish.bonusPoints || viewingFish.bonusPoints.length === 0) && (
+                        <p className="col-span-3 text-center opacity-60 italic">Aucun bonus configuré.</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* DESCRIPTION */}
+                  <Card className="border border-slate-200 rounded-xl">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Description</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-slate-600 leading-relaxed">{viewingFish.description}</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
+        {/* DIALOG EDIT */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
-              </DialogTitle>
-              <DialogDescription>
-                Configurez les caractéristiques de l'espèce. Utilisez le bouton IA pour générer du contenu automatiquement.
-              </DialogDescription>
+              <DialogTitle>{editingFish?.id ? "Modifier l'espèce" : "Nouvelle espèce"}</DialogTitle>
+              <DialogDescription>Gérez les informations détaillées de la fiche.</DialogDescription>
             </DialogHeader>
-            
             {editingFish && (
               <div className="space-y-6 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Nom Commun</Label>
-                    <Input 
-                      value={editingFish.name} 
-                      onChange={e => setEditingFish({...editingFish, name: e.target.value})}
-                    />
+                    <Label>Nom</Label>
+                    <Input value={editingFish.name} onChange={e => setEditingFish({...editingFish, name: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <Label>Nom Scientifique</Label>
-                    <Input 
-                      value={editingFish.scientificName} 
-                      onChange={e => setEditingFish({...editingFish, scientificName: e.target.value})}
-                    />
+                    <Input value={editingFish.scientificName} onChange={e => setEditingFish({...editingFish, scientificName: e.target.value})} />
                   </div>
                 </div>
 
-                <div className="col-span-2 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2">
-                      <ImageIcon className="h-4 w-4" /> Illustration
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="file" 
-                        accept="image/*" 
-                        className="hidden" 
-                        ref={fileInputRef} 
-                        onChange={handleImageUpload} 
-                      />
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => fileInputRef.current?.click()}
-                        disabled={isUploading}
-                      >
-                        {isUploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
-                        Charger Photo
-                      </Button>
-                    </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Maille (cm)</Label>
+                    <Input type="number" value={editingFish.minSize} onChange={e => setEditingFish({...editingFish, minSize: parseInt(e.target.value) || 0})} />
                   </div>
+                  <div className="space-y-2">
+                    <Label>Taille Max (cm)</Label>
+                    <Input type="number" value={editingFish.maxSize} onChange={e => setEditingFish({...editingFish, maxSize: parseInt(e.target.value) || 0})} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rareté</Label>
+                    <Select value={editingFish.rarity} onValueChange={(v: any) => setEditingFish({...editingFish, rarity: v})}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Commun">Commun</SelectItem>
+                        <SelectItem value="Rare">Rare</SelectItem>
+                        <SelectItem value="Très rare">Très rare</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Techniques (séparées par des virgules)</Label>
                   <Input 
-                    value={editingFish.imageUrl} 
-                    onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})}
-                    placeholder="URL de l'image"
+                    value={editingFish.techniques?.join(', ')} 
+                    onChange={e => setEditingFish({...editingFish, techniques: e.target.value.split(',').map(s => s.trim()).filter(s => s)})} 
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea 
-                    className="min-h-[120px]"
-                    value={editingFish.description} 
-                    onChange={e => setEditingFish({...editingFish, description: e.target.value})}
+                  <Label>Spots (séparés par des virgules)</Label>
+                  <Input 
+                    value={editingFish.spots?.join(', ')} 
+                    onChange={e => setEditingFish({...editingFish, spots: e.target.value.split(',').map(s => s.trim()).filter(s => s)})} 
                   />
-                  <Button variant="secondary" size="sm" onClick={handleAIGenerate} disabled={isAILoading}>
-                    <Sparkles className="h-4 w-4 mr-2" /> IA Enrichir
-                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Photo</Label>
+                    <div className="flex gap-2">
+                      <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                      <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                        {isUploading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />} Upload
+                      </Button>
+                    </div>
+                  </div>
+                  <Input value={editingFish.imageUrl} onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})} placeholder="URL Image" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description</Label>
+                  <Textarea className="min-h-[150px]" value={editingFish.description} onChange={e => setEditingFish({...editingFish, description: e.target.value})} />
                 </div>
               </div>
             )}
-
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-              <Button onClick={handleSaveFish}>Enregistrer</Button>
+              <Button onClick={handleSaveFish}>Enregistrer la fiche</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* IA IMPORT DIALOG */}
+        <Dialog open={isParseDialogOpen} onOpenChange={setIsParseDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Importation par IA</DialogTitle>
+              <DialogDescription>Collez un texte descriptif pour extraire les données.</DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Textarea placeholder="Ex: L'anguille mesure entre 40 et 80cm..." className="min-h-[200px]" value={rawText} onChange={(e) => setRawText(e.target.value)} />
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAIParse} disabled={isAILoading}>
+                {isAILoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />} Analyser
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
