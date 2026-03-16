@@ -120,15 +120,26 @@ export default function AuthPage() {
       await sendPasswordResetEmail(auth, resetEmail);
       toast({ 
         title: "E-mail envoyé", 
-        description: "Un lien de réinitialisation a été envoyé à votre adresse e-mail." 
+        description: "Un lien de réinitialisation a été envoyé à votre adresse e-mail. Pensez à vérifier vos spams." 
       });
       setIsResetDialogOpen(false);
       setResetEmail('');
     } catch (error: any) {
+      console.error("Password reset error:", error);
+      let errorMessage = "Une erreur est survenue lors de l'envoi de l'e-mail.";
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "Aucun utilisateur n'est enregistré avec cette adresse e-mail.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "L'adresse e-mail saisie n'est pas valide.";
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
+      }
+
       toast({ 
         variant: "destructive", 
-        title: "Erreur", 
-        description: "Impossible d'envoyer l'e-mail de réinitialisation. Vérifiez l'adresse saisie." 
+        title: "Erreur d'envoi", 
+        description: errorMessage
       });
     } finally {
       setIsResetLoading(false);
@@ -181,7 +192,7 @@ export default function AuthPage() {
                           <DialogHeader>
                             <DialogTitle>Réinitialiser le mot de passe</DialogTitle>
                             <DialogDescription>
-                              Saisissez votre e-mail pour recevoir un lien de réinitialisation.
+                              Saisissez votre e-mail pour recevoir un lien de réinitialisation sécurisé.
                             </DialogDescription>
                           </DialogHeader>
                           <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
