@@ -74,7 +74,7 @@ export default function AdminPage() {
       <Navigation />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Navigation Tabs Mockup Style */}
+        {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-4 mb-8">
           {tabs.map((tab) => (
             <button
@@ -175,21 +175,30 @@ export default function AdminPage() {
                     <Users className="h-3 w-3" /> UTILISATEURS
                   </h3>
                   <div className="space-y-3">
-                    {loadingUsers ? <Loader2 className="animate-spin mx-auto text-slate-700" /> : users?.map((u) => (
-                      <div key={u.id} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/50 flex items-center justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-bold text-lg">{u.name}</h4>
+                    {loadingUsers ? (
+                      <div className="flex justify-center py-4"><Loader2 className="animate-spin text-slate-500" /></div>
+                    ) : users?.map((u) => (
+                      <div key={u.id} className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-200 font-medium text-sm">
+                              {u.name || "Pêcheur Anonyme"}
+                            </span>
                             {u.role === 'admin' && (
-                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px] h-4">
-                                ADMIN
+                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px] h-4 uppercase font-bold">
+                                Admin
                               </Badge>
                             )}
                           </div>
-                          <p className="text-xs text-slate-500">{u.id}@gmail.com</p>
+                          <span className="text-slate-500 text-xs truncate">
+                            {u.email || `${u.id}@gmail.com`}
+                          </span>
                         </div>
                       </div>
                     ))}
+                    {users?.length === 0 && (
+                      <p className="text-center py-4 text-slate-500 italic text-sm">Aucun utilisateur inscrit.</p>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -197,12 +206,17 @@ export default function AdminPage() {
           </div>
         )}
 
-        {activeTab !== 'access' && (
+        {activeTab !== 'access' && ( activeTab === 'guide' ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+            <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
+            <p className="text-slate-400 text-center px-4">Utilisez le module "Guide" dans la navigation pour gérer les poissons.</p>
+          </div>
+        ) : (
           <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
             <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
             <p className="text-slate-400">Le module {tabs.find(t => t.id === activeTab)?.label} est en cours de configuration.</p>
           </div>
-        )}
+        ))}
       </main>
     </div>
   );
