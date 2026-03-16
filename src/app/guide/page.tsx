@@ -32,7 +32,7 @@ import { generateFishDescription } from '@/ai/flows/generate-fish-description-fl
 import { parseFishData } from '@/ai/flows/parse-fish-data-flow';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useStorage, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
 const EMPTY_FISH: FishSpecies = {
   id: '',
@@ -116,35 +116,49 @@ export default function GuidePage() {
     });
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !editingFish) return;
 
     setIsUploading(true);
-    try {
-      const storageRef = ref(storage, `species/${Date.now()}_${file.name}`);
-      const snapshot = await uploadBytes(storageRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
+    
+    // Create a storage reference
+    const storageRef = ref(storage, `species/${Date.now()}_${file.name}`);
+    const uploadTask = uploadBytesResumable(storageRef, file);
 
-      setEditingFish({
-        ...editingFish,
-        imageUrl: downloadURL
-      });
+    // Monitor upload progress and status
+    uploadTask.on('state_changed', 
+      (snapshot) => {
+        // We could track progress here if needed
+      }, 
+      (error) => {
+        console.error("Upload error:", error);
+        setIsUploading(false);
+        toast({
+          variant: "destructive",
+          title: "Erreur de chargement",
+          description: "Le transfert a échoué. Vérifiez que Storage est activé dans votre console Firebase."
+        });
+      }, 
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          setEditingFish(prev => prev ? {
+            ...prev,
+            imageUrl: downloadURL
+          } : null);
 
-      toast({
-        title: "Image chargée",
-        description: "L'image a été stockée avec succès."
-      });
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur de chargement",
-        description: "Impossible d'envoyer l'image vers Storage."
-      });
-    } finally {
-      setIsUploading(false);
-    }
+          toast({
+            title: "Image chargée",
+            description: "L'image a été stockée avec succès."
+          });
+        } catch (err) {
+          console.error("URL retrieval error:", err);
+        } finally {
+          setIsUploading(false);
+        }
+      }
+    );
   };
 
   const handleAIGenerate = async () => {
