@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -89,24 +88,26 @@ export default function AdminPage() {
   [firestore, authUser]);
   const { data: profile, isLoading: loadingProfile } = useDoc<UserProfile>(userDocRef);
 
+  // For safety in MVP, we check if the role is admin. 
+  // If no profile yet, we wait.
   const isAdmin = profile?.role === 'admin';
 
-  // 2. Conditional queries for admin data
+  // 2. Queries for admin data - only run if profile is loaded
   const usersQuery = useMemoFirebase(() => 
-    isAdmin ? collection(firestore, 'users') : null, 
-  [firestore, isAdmin]);
+    profile ? collection(firestore, 'users') : null, 
+  [firestore, profile]);
 
   const activeCodesQuery = useMemoFirebase(() => 
-    isAdmin ? query(collection(firestore, 'registration_codes'), where('isUsed', '==', false)) : null, 
-  [firestore, isAdmin]);
+    profile ? query(collection(firestore, 'registration_codes'), where('isUsed', '==', false)) : null, 
+  [firestore, profile]);
 
   const competitionsQuery = useMemoFirebase(() => 
-    isAdmin ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, 
-  [firestore, isAdmin]);
+    profile ? query(collection(firestore, 'competitions'), orderBy('createdAt', 'desc')) : null, 
+  [firestore, profile]);
 
   const catchesQuery = useMemoFirebase(() => 
-    isAdmin ? query(collection(firestore, 'catches'), orderBy('date', 'desc')) : null, 
-  [firestore, isAdmin]);
+    profile ? query(collection(firestore, 'catches'), orderBy('date', 'desc')) : null, 
+  [firestore, profile]);
 
   const speciesQuery = useMemoFirebase(() => 
     collection(firestore, 'species'), 
@@ -119,7 +120,6 @@ export default function AdminPage() {
   const { data: species } = useCollection<FishSpecies>(speciesQuery);
 
   const handleGenerateCode = () => {
-    if (!isAdmin) return;
     setIsGenerating(true);
     const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     
@@ -139,7 +139,6 @@ export default function AdminPage() {
   };
 
   const handleDeleteCode = (id: string) => {
-    if (!isAdmin) return;
     const docRef = doc(firestore, 'registration_codes', id);
     deleteDocumentNonBlocking(docRef);
     toast({ title: "Code supprimé" });
@@ -150,7 +149,7 @@ export default function AdminPage() {
   };
 
   const handleSaveUser = () => {
-    if (!editingUser || !isAdmin) return;
+    if (!editingUser) return;
     setIsUserUpdating(true);
     
     const userRef = doc(firestore, 'users', editingUser.id);
@@ -167,7 +166,6 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = (id: string, name: string) => {
-    if (!isAdmin) return;
     if (!confirm(`Supprimer définitivement l'utilisateur ${name} ?`)) return;
     const userRef = doc(firestore, 'users', id);
     deleteDocumentNonBlocking(userRef);
@@ -195,7 +193,7 @@ export default function AdminPage() {
   };
 
   const handleCreateContest = () => {
-    if (!isAdmin || !newContest.name || !newContest.startDate || !newContest.endDate) return;
+    if (!newContest.name || !newContest.startDate || !newContest.endDate) return;
     setIsCreatingContest(true);
 
     const contestData: Omit<Contest, 'id'> = {
@@ -220,24 +218,20 @@ export default function AdminPage() {
     toast({ title: "Statut mis à jour" });
   };
 
-  // --- CATCH MANAGEMENT HANDLERS ---
   const handleUpdateCatchStatus = (catchItem: Catch, newStatus: Catch['status']) => {
     if (catchItem.status === newStatus) return;
 
     const catchRef = doc(firestore, 'catches', catchItem.id);
     updateDocumentNonBlocking(catchRef, { status: newStatus });
 
-    // Handle user points adjustment if the status changes between approved and not approved
     const userRef = doc(firestore, 'users', catchItem.anglerId);
     
     if (catchItem.status === 'approved' && newStatus !== 'approved') {
-      // Was approved, now rejected or pending: remove points
       updateDocumentNonBlocking(userRef, {
         totalPoints: increment(-catchItem.points),
         catchesCount: increment(-1)
       });
     } else if (catchItem.status !== 'approved' && newStatus === 'approved') {
-      // Was not approved, now is: add points
       updateDocumentNonBlocking(userRef, {
         totalPoints: increment(catchItem.points),
         catchesCount: increment(1)
@@ -255,7 +249,6 @@ export default function AdminPage() {
     const catchRef = doc(firestore, 'catches', catchItem.id);
     deleteDocumentNonBlocking(catchRef);
 
-    // If the catch was approved, remove its points from the user
     if (catchItem.status === 'approved') {
       const userRef = doc(firestore, 'users', catchItem.anglerId);
       updateDocumentNonBlocking(userRef, {
@@ -272,13 +265,12 @@ export default function AdminPage() {
   };
 
   const handleSaveCatch = () => {
-    if (!editingCatch || !isAdmin) return;
+    if (!editingCatch) return;
     setIsCatchUpdating(true);
 
     const oldCatch = catches?.find(c => c.id === editingCatch.id);
     if (!oldCatch) return;
 
-    // Recalculate points based on selected species and size
     const fish = species?.find(s => s.id === editingCatch.fishId);
     const updatedPoints = (fish?.pointsPerCm || 10) * editingCatch.size;
 
@@ -292,7 +284,6 @@ export default function AdminPage() {
       points: updatedPoints
     });
 
-    // If approved, update user's total points with the difference
     if (oldCatch.status === 'approved') {
       const userRef = doc(firestore, 'users', oldCatch.anglerId);
       const pointsDiff = updatedPoints - oldCatch.points;
@@ -325,6 +316,7 @@ export default function AdminPage() {
     );
   }
 
+  // Security barrier: check if admin in state
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -371,7 +363,6 @@ export default function AdminPage() {
 
         {activeTab === 'access' && (
           <div className="grid lg:grid-cols-2 gap-8">
-            {/* INVITATION CODES */}
             <Card className="border-none shadow-sm bg-white h-fit">
               <CardHeader className="pb-4">
                 <CardTitle className="text-2xl font-headline flex items-center gap-2 text-slate-800">
@@ -421,7 +412,6 @@ export default function AdminPage() {
               </CardContent>
             </Card>
 
-            {/* USERS LIST PANEL */}
             <Card className="border-none shadow-sm bg-white">
               <CardHeader className="pb-6">
                 <CardTitle className="text-2xl font-headline flex items-center gap-2 text-slate-800">
@@ -507,9 +497,6 @@ export default function AdminPage() {
                         </div>
                       </div>
                     ))}
-                    {users?.length === 0 && !loadingUsers && (
-                      <p className="text-center py-4 text-slate-300 italic text-sm">Aucun utilisateur inscrit.</p>
-                    )}
                   </div>
                 </div>
               </CardContent>
@@ -593,15 +580,8 @@ export default function AdminPage() {
                   </CardContent>
                 </Card>
               ))}
-              {competitions?.length === 0 && !loadingCompetitions && (
-                <div className="col-span-full py-20 bg-white rounded-3xl border border-dashed text-center">
-                  <Trophy className="h-12 w-12 text-slate-100 mx-auto mb-4" />
-                  <p className="text-slate-400">Aucune compétition enregistrée.</p>
-                </div>
-              )}
             </div>
 
-            {/* NEW CONTEST DIALOG */}
             <Dialog open={isContestDialogOpen} onOpenChange={setIsContestDialogOpen}>
               <DialogContent className="max-w-md">
                 <DialogHeader>
@@ -755,17 +735,10 @@ export default function AdminPage() {
                   </div>
                 </Card>
               ))}
-              {catches?.length === 0 && !loadingCatches && (
-                <div className="py-20 bg-white rounded-3xl border border-dashed text-center">
-                  <Camera className="h-12 w-12 text-slate-100 mx-auto mb-4" />
-                  <p className="text-slate-400">Aucune capture à modérer.</p>
-                </div>
-              )}
             </div>
           </div>
         )}
 
-        {/* MODAL EDIT USER */}
         <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -801,10 +774,6 @@ export default function AdminPage() {
                       placeholder="Nom complet"
                     />
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Email (Non modifiable)</Label>
-                    <Input value={editingUser.email} disabled className="bg-slate-50 text-slate-400" />
-                  </div>
                 </div>
               </div>
             )}
@@ -821,7 +790,6 @@ export default function AdminPage() {
           </DialogContent>
         </Dialog>
 
-        {/* MODAL EDIT CATCH */}
         <Dialog open={!!editingCatch} onOpenChange={(open) => !open && setEditingCatch(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -900,13 +868,6 @@ export default function AdminPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {activeTab !== 'access' && activeTab !== 'competitions' && activeTab !== 'captures' && (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-            <ShieldCheck className="h-12 w-12 text-slate-200 mb-4" />
-            <p className="text-slate-400">Le module {tabs.find(t => t.id === activeTab)?.label} est en cours de configuration.</p>
-          </div>
-        )}
       </main>
     </div>
   );

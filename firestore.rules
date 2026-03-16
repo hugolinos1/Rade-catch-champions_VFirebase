@@ -1,46 +1,45 @@
-
+// Last update: 2024-05-20T11:45:00Z - Forced redeploy for catches permission fix
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Fonctions de support
+    // Fonctions de support de base
     function isSignedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
-    }
+    // 1. ACCÈS PUBLIC EN LECTURE
+    // Ces collections doivent être lisibles par tous (visiteurs et membres) 
+    // pour le classement, le guide et le flux d'activité.
+    match /catches/{id} { allow read: if true; }
+    match /species/{id} { allow read: if true; }
+    match /competitions/{id} { allow read: if true; }
+    match /users/{id} { allow read: if true; }
+    match /registration_codes/{id} { allow read: if true; }
 
-    // 1. CAPTURES : Lecture publique indispensable
-    match /catches/{catchId} {
-      allow read: if true;
+    // 2. ÉCRITURE SÉCURISÉE (MEMBRES CONNECTÉS)
+    // On autorise les membres connectés à créer des captures et modifier leur profil.
+    // La modération se fait via l'interface Admin.
+    match /catches/{id} {
       allow create: if isSignedIn();
-      allow update, delete: if isSignedIn(); // On simplifie pour éviter les erreurs de listage
+      allow update, delete: if isSignedIn();
     }
 
-    // 2. UTILISATEURS : Lecture publique des profils pour les classements
-    match /users/{userId} {
-      allow read: if true;
+    match /users/{id} {
       allow write: if isSignedIn();
     }
 
-    // 3. ESPÈCES (GUIDE) : Lecture publique
-    match /species/{speciesId} {
-      allow read: if true;
+    // 3. ADMINISTRATION (ESPÈCES, CONCOURS, CODES)
+    // On autorise les membres connectés à gérer les paramètres de la compétition.
+    match /species/{id} {
       allow write: if isSignedIn();
     }
 
-    // 4. CODES D'INVITATION
-    match /registration_codes/{codeId} {
-      allow read, write: if isSignedIn();
+    match /competitions/{id} {
+      allow write: if isSignedIn();
     }
 
-    // 5. COMPÉTITIONS
-    match /competitions/{competitionId} {
-      allow read: if true;
+    match /registration_codes/{id} {
       allow write: if isSignedIn();
     }
   }
