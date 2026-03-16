@@ -42,11 +42,10 @@ import {
   Trophy
 } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useRef } from 'react';
-import { FishSpecies, BonusPointThreshold } from '@/lib/types';
+import { useState, useRef, useMemo } from 'react';
+import { FishSpecies } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { generateFishDescription } from '@/ai/flows/generate-fish-description-flow';
 import { parseFishData } from '@/ai/flows/parse-fish-data-flow';
 import { useCollection, useFirestore, useMemoFirebase, useUser, useStorage, setDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
@@ -58,7 +57,6 @@ const EMPTY_FISH: FishSpecies = {
   scientificName: '',
   pointsPerCm: 10,
   minSize: 0,
-  maxSize: 0,
   description: '',
   imageUrl: '',
   habitat: '',
@@ -67,7 +65,6 @@ const EMPTY_FISH: FishSpecies = {
   keyFeatures: '',
   fishingTips: '',
   eligibilityCriteria: '',
-  rarity: 'Commun',
   techniques: [],
   spots: [],
   bonusPoints: []
@@ -82,9 +79,24 @@ export default function GuidePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const fishQuery = useMemoFirebase(() => collection(firestore, 'species'), [firestore]);
-  const { data: fishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
+  const { data: rawFishList, isLoading: isCollectionLoading } = useCollection<FishSpecies>(fishQuery);
 
-  const isAdmin = user?.uid === 'ANhg48llRKYGbHSQyS5883B0eL62' || !!user; // Simplifié pour le proto
+  // Normalisation des données pour gérer les différents schémas Firestore
+  const fishList = useMemo(() => {
+    if (!rawFishList) return [];
+    return rawFishList.map(fish => ({
+      ...fish,
+      imageUrl: fish.image || fish.imageUrl || '',
+      minSize: fish.legalSize || fish.minSize || 0,
+      bonusPoints: (fish.pointsSystem || fish.bonusPoints || []).map(p => ({
+        threshold: p.minSize || p.threshold || 0,
+        points: p.points || 0
+      })),
+      rarity: fish.rarity === 'very-rare' ? 'Très rare' : (fish.rarity === 'rare' ? 'Rare' : (fish.rarity || 'Commun'))
+    }));
+  }, [rawFishList]);
+
+  const isAdmin = !!user;
   
   const [editingFish, setEditingFish] = useState<FishSpecies | null>(null);
   const [viewingFish, setViewingFish] = useState<FishSpecies | null>(null);
@@ -95,7 +107,7 @@ export default function GuidePage() {
   const [isParseDialogOpen, setIsParseDialogOpen] = useState(false);
   const [rawText, setRawText] = useState('');
 
-  const filteredFish = (fishList || []).filter(fish => 
+  const filteredFish = fishList.filter(fish => 
     fish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     fish.scientificName.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -120,14 +132,24 @@ export default function GuidePage() {
     if (!editingFish) return;
     
     const docId = editingFish.id || doc(collection(firestore, 'species')).id;
-    const finalFish = { ...editingFish, id: docId };
+    // On sauvegarde en respectant le schéma attendu par la base (legalSize, image, pointsSystem)
+    const finalFishData = { 
+      ...editingFish, 
+      id: docId,
+      legalSize: editingFish.minSize,
+      image: editingFish.imageUrl,
+      pointsSystem: editingFish.bonusPoints?.map(p => ({
+        minSize: p.threshold,
+        points: p.points
+      }))
+    };
     
     const docRef = doc(firestore, 'species', docId);
-    setDocumentNonBlocking(docRef, finalFish, { merge: true });
+    setDocumentNonBlocking(docRef, finalFishData, { merge: true });
     
     toast({
       title: editingFish.id ? "Fiche mise à jour" : "Nouvelle espèce créée",
-      description: `${finalFish.name} a été enregistré dans le guide.`
+      description: `${finalFishData.name} a été enregistré.`
     });
     
     setIsDialogOpen(false);
@@ -157,9 +179,9 @@ export default function GuidePage() {
       const downloadURL = await getDownloadURL(snapshot.ref);
 
       setEditingFish(prev => prev ? { ...prev, imageUrl: downloadURL } : null);
-      toast({ title: "Photo ajoutée", description: "L'image a été chargée." });
+      toast({ title: "Photo ajoutée", description: "L'image a été chargée avec succès." });
     } catch (error) {
-      toast({ variant: "destructive", title: "Erreur", description: "Échec du chargement." });
+      toast({ variant: "destructive", title: "Erreur", description: "Échec du chargement de l'image." });
     } finally {
       setIsUploading(false);
     }
@@ -175,7 +197,7 @@ export default function GuidePage() {
       setIsDialogOpen(true);
       setRawText('');
     } catch (error) {
-      toast({ variant: "destructive", title: "Erreur", description: "L'IA n'a pas pu analyser ce texte." });
+      toast({ variant: "destructive", title: "Erreur IA", description: "Analyse impossible." });
     } finally {
       setIsAILoading(false);
     }
@@ -197,7 +219,7 @@ export default function GuidePage() {
         <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <h1 className="font-headline text-4xl font-bold mb-2 text-slate-900">Guide des Poissons</h1>
-            <p className="text-muted-foreground text-lg">Explorez la biodiversité de la Rade de Brest.</p>
+            <p className="text-muted-foreground text-lg">Découvrez les espèces de la Rade de Brest.</p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4">
@@ -242,7 +264,7 @@ export default function GuidePage() {
                   />
                   <div className="absolute top-3 right-3">
                     <Badge className={cn("text-[10px] font-bold px-2 py-0.5", getRarityBadgeColor(fish.rarity))}>
-                      {fish.rarity || 'Commun'}
+                      {fish.rarity}
                     </Badge>
                   </div>
                 </div>
@@ -274,107 +296,100 @@ export default function GuidePage() {
           </div>
         )}
 
-        {/* DIALOG DETAILS (Fidèle à l'image Anguille) */}
+        {/* DIALOG DETAILS */}
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-50">
-            <DialogHeader className="sr-only">
-              <DialogTitle>Détails de {viewingFish?.name}</DialogTitle>
-              <DialogDescription>Informations complètes sur l'espèce.</DialogDescription>
+            <DialogHeader className="p-6 bg-white border-b">
+              <div className="flex justify-between items-start">
+                <div>
+                  <DialogTitle className="font-headline text-4xl font-bold text-[#1e4e6e]">{viewingFish?.name}</DialogTitle>
+                  <p className="text-lg italic text-slate-400 mt-1">{viewingFish?.scientificName}</p>
+                </div>
+                <Badge className={cn("text-xs font-bold px-3 py-1", getRarityBadgeColor(viewingFish?.rarity))}>
+                  {viewingFish?.rarity}
+                </Badge>
+              </div>
+              <DialogDescription className="sr-only">
+                Détails complets de l'espèce {viewingFish?.name}.
+              </DialogDescription>
             </DialogHeader>
             
             {viewingFish && (
-              <div className="relative">
-                <div className="p-8 bg-white">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h2 className="font-headline text-4xl font-bold text-[#1e4e6e]">{viewingFish.name}</h2>
-                      <p className="text-lg italic text-slate-400 mt-1">{viewingFish.scientificName}</p>
-                    </div>
-                    <Badge className={cn("text-xs font-bold px-3 py-1", getRarityBadgeColor(viewingFish.rarity))}>
-                      {viewingFish.rarity}
-                    </Badge>
-                  </div>
+              <div className="p-8">
+                <div className="relative h-[300px] w-full rounded-2xl overflow-hidden shadow-inner mb-8 bg-slate-100">
+                  <Image src={viewingFish.imageUrl || 'https://picsum.photos/seed/fish/800/400'} alt={viewingFish.name} fill className="object-cover" />
+                </div>
 
-                  <div className="relative h-[300px] w-full rounded-2xl overflow-hidden shadow-inner mb-8 bg-slate-100">
-                    <Image src={viewingFish.imageUrl || 'https://picsum.photos/seed/fish/800/400'} alt={viewingFish.name} fill className="object-cover" />
-                  </div>
+                <div className="grid md:grid-cols-3 gap-6 mb-8">
+                  <Card className="border-none bg-white shadow-sm rounded-xl">
+                    <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                      <Ruler className="h-5 w-5 text-orange-400" />
+                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Taille</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 text-sm">
+                      <p><span className="font-bold">Maille légale:</span> {viewingFish.minSize} cm</p>
+                      <p><span className="font-bold">Taille moyenne:</span> {viewingFish.averageSize || 'N/A'}</p>
+                      <p><span className="font-bold">Taille maximale:</span> {viewingFish.maxSize || 'N/A'} cm</p>
+                    </CardContent>
+                  </Card>
 
-                  <div className="grid md:grid-cols-3 gap-6 mb-8">
-                    {/* TAILLE */}
-                    <Card className="border-none bg-white shadow-sm rounded-xl">
-                      <CardHeader className="pb-2 flex flex-row items-center gap-2">
-                        <Ruler className="h-5 w-5 text-orange-400" />
-                        <CardTitle className="text-lg font-bold text-[#1e4e6e]">Taille</CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-1 text-sm">
-                        <p><span className="font-bold">Maille légale:</span> {viewingFish.minSize} cm</p>
-                        <p><span className="font-bold">Taille moyenne:</span> {viewingFish.averageSize || 'N/A'}</p>
-                        <p><span className="font-bold">Taille maximale:</span> {viewingFish.maxSize || 'N/A'} cm</p>
-                      </CardContent>
-                    </Card>
-
-                    {/* TECHNIQUES */}
-                    <Card className="border-none bg-[#e8f4f9] shadow-sm rounded-xl">
-                      <CardHeader className="pb-2 flex flex-row items-center gap-2">
-                        <Zap className="h-5 w-5 text-orange-400" />
-                        <CardTitle className="text-lg font-bold text-[#1e4e6e]">Techniques</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="flex flex-wrap gap-2">
-                          {viewingFish.techniques?.map((t, idx) => (
-                            <Badge key={idx} variant="secondary" className="bg-[#b7e2f0] text-[#1e4e6e] hover:bg-[#b7e2f0]">{t}</Badge>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* SPOTS */}
-                    <Card className="border-none bg-white shadow-sm rounded-xl">
-                      <CardHeader className="pb-2 flex flex-row items-center gap-2">
-                        <MapPin className="h-5 w-5 text-orange-400" />
-                        <CardTitle className="text-lg font-bold text-[#1e4e6e]">Spots</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-1 text-sm">
-                          {viewingFish.spots?.map((s, idx) => (
-                            <li key={idx} className="flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* POINTS BONUS */}
-                  <div className="bg-[#1e4e6e] rounded-2xl p-6 mb-8 text-white">
-                    <h3 className="font-headline text-xl font-bold flex items-center gap-2 mb-6">
-                      <Target className="h-6 w-6" /> Points Bonus
-                    </h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      {viewingFish.bonusPoints?.map((bp, idx) => (
-                        <div key={idx} className="bg-white/10 rounded-xl p-4 text-center border border-white/20">
-                          <p className="text-3xl font-bold">{bp.points}</p>
-                          <p className="text-sm opacity-80">+ {bp.threshold} cm</p>
-                        </div>
-                      ))}
-                      {(!viewingFish.bonusPoints || viewingFish.bonusPoints.length === 0) && (
-                        <p className="col-span-3 text-center opacity-60 italic">Aucun bonus configuré.</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* DESCRIPTION */}
-                  <Card className="border border-slate-200 rounded-xl">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Description</CardTitle>
+                  <Card className="border-none bg-[#e8f4f9] shadow-sm rounded-xl">
+                    <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                      <Zap className="h-5 w-5 text-orange-400" />
+                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Techniques</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-slate-600 leading-relaxed">{viewingFish.description}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {viewingFish.techniques?.map((t, idx) => (
+                          <Badge key={idx} variant="secondary" className="bg-[#b7e2f0] text-[#1e4e6e] hover:bg-[#b7e2f0]">{t}</Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-none bg-white shadow-sm rounded-xl">
+                    <CardHeader className="pb-2 flex flex-row items-center gap-2">
+                      <MapPin className="h-5 w-5 text-orange-400" />
+                      <CardTitle className="text-lg font-bold text-[#1e4e6e]">Spots</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-1 text-sm">
+                        {viewingFish.spots?.map((s, idx) => (
+                          <li key={idx} className="flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-orange-400" />
+                            {s}
+                          </li>
+                        ))}
+                      </ul>
                     </CardContent>
                   </Card>
                 </div>
+
+                <div className="bg-[#1e4e6e] rounded-2xl p-6 mb-8 text-white">
+                  <h3 className="font-headline text-xl font-bold flex items-center gap-2 mb-6">
+                    <Target className="h-6 w-6" /> Points Bonus
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {viewingFish.bonusPoints?.map((bp, idx) => (
+                      <div key={idx} className="bg-white/10 rounded-xl p-4 text-center border border-white/20">
+                        <p className="text-3xl font-bold">{bp.points}</p>
+                        <p className="text-sm opacity-80">+ {bp.threshold} cm</p>
+                      </div>
+                    ))}
+                    {(!viewingFish.bonusPoints || viewingFish.bonusPoints.length === 0) && (
+                      <p className="col-span-3 text-center opacity-60 italic py-4">Aucun palier de bonus configuré.</p>
+                    )}
+                  </div>
+                </div>
+
+                <Card className="border border-slate-200 rounded-xl">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-bold text-[#1e4e6e]">Description</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-slate-600 leading-relaxed">{viewingFish.description}</p>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </DialogContent>
@@ -385,7 +400,9 @@ export default function GuidePage() {
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingFish?.id ? "Modifier l'espèce" : "Nouvelle espèce"}</DialogTitle>
-              <DialogDescription>Gérez les informations détaillées de la fiche.</DialogDescription>
+              <DialogDescription>
+                Remplissez les informations de la fiche pour {editingFish?.name || "le nouveau poisson"}.
+              </DialogDescription>
             </DialogHeader>
             {editingFish && (
               <div className="space-y-6 py-4">
@@ -448,7 +465,7 @@ export default function GuidePage() {
                       </Button>
                     </div>
                   </div>
-                  <Input value={editingFish.imageUrl} onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})} placeholder="URL Image" />
+                  <Input value={editingFish.imageUrl} onChange={e => setEditingFish({...editingFish, imageUrl: e.target.value})} placeholder="URL de l'image" />
                 </div>
 
                 <div className="space-y-2">
@@ -459,7 +476,7 @@ export default function GuidePage() {
             )}
             <DialogFooter>
               <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-              <Button onClick={handleSaveFish}>Enregistrer la fiche</Button>
+              <Button onClick={handleSaveFish}>Enregistrer</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -469,7 +486,9 @@ export default function GuidePage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Importation par IA</DialogTitle>
-              <DialogDescription>Collez un texte descriptif pour extraire les données.</DialogDescription>
+              <DialogDescription>
+                Collez un texte descriptif pour extraire automatiquement les données de l'espèce.
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4">
               <Textarea placeholder="Ex: L'anguille mesure entre 40 et 80cm..." className="min-h-[200px]" value={rawText} onChange={(e) => setRawText(e.target.value)} />

@@ -2,6 +2,7 @@
 export type BonusPointThreshold = {
   threshold: number;
   points: number;
+  minSize?: number; // Pour la compatibilité avec Firestore pointsSystem
 };
 
 export type FishSpecies = {
@@ -10,19 +11,22 @@ export type FishSpecies = {
   scientificName: string;
   pointsPerCm: number;
   minSize: number;
+  legalSize?: number; // Pour la compatibilité Firestore
   maxSize?: number;
   description: string;
   imageUrl: string;
+  image?: string; // Pour la compatibilité Firestore
   habitat: string;
   diet: string;
   averageSize: string;
   keyFeatures: string;
   fishingTips: string;
   eligibilityCriteria: string;
-  rarity?: 'Commun' | 'Rare' | 'Très rare';
+  rarity?: string;
   techniques?: string[];
   spots?: string[];
   bonusPoints?: BonusPointThreshold[];
+  pointsSystem?: BonusPointThreshold[]; // Pour la compatibilité Firestore
 };
 
 export type Catch = {
