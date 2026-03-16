@@ -7,7 +7,12 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      // Pour le prototype, on vérifie si le rôle dans le document utilisateur est 'admin'
+      // ou si l'utilisateur est présent dans la collection roles_admin
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
     }
 
     function isOwner(userId) {
@@ -42,8 +47,8 @@ service cloud.firestore {
     }
 
     match /registration_codes/{codeId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      // Autoriser la lecture et l'écriture pour les tests du module Admin en phase de prototype
+      allow read, write: if isSignedIn();
     }
   }
 }

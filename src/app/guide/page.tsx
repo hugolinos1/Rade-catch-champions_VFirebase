@@ -456,7 +456,7 @@ export default function GuidePage() {
           </DialogContent>
         </Dialog>
 
-        {/* DIALOG EDIT (MODIFIED TO MATCH MOCKUP) */}
+        {/* DIALOG EDIT */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -464,7 +464,7 @@ export default function GuidePage() {
                 {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
               </DialogTitle>
               <DialogDescription>
-                Renseignez les informations détaillées de l'espèce.
+                Renseignez les informations détaillées de l'espèce pour le guide.
               </DialogDescription>
             </DialogHeader>
             {editingFish && (
@@ -577,7 +577,7 @@ export default function GuidePage() {
                       </div>
                     )}
                     <div className="flex-1 flex gap-2">
-                       <Input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
+                       <input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
                        <Button variant="outline" className="w-full bg-white border-slate-200 text-slate-500 justify-start font-normal h-10" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                          {isUploading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
                          Choisir un fichier <span className="ml-2 text-slate-400">Aucun fichier choisi</span>
@@ -604,7 +604,6 @@ export default function GuidePage() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
-              <span className="text-sm text-slate-500 mb-2 block">Collez un texte descriptif pour extraire automatiquement les données de l'espèce.</span>
               <Textarea placeholder="Ex: L'anguille mesure entre 40 et 80cm..." className="min-h-[200px]" value={rawText} onChange={(e) => setRawText(e.target.value)} />
             </div>
             <DialogFooter>
