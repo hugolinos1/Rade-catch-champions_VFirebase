@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Camera, Send, History, Trophy, Fish, Scale } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Camera, Send, History, Trophy, Fish, Scale, Users, Anchor } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-import { Catch } from '@/lib/types';
+import { Catch, UserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const RECENT_CATCHES: Catch[] = [
@@ -43,9 +43,22 @@ const RECENT_CATCHES: Catch[] = [
   }
 ];
 
+const MOCK_USERS: UserProfile[] = [
+  { id: 'u1', name: 'Jean-Marc L.', role: 'user', totalPoints: 4500, catchesCount: 12 },
+  { id: 'u2', name: 'Marine B.', role: 'user', totalPoints: 3200, catchesCount: 8 },
+  { id: 'u3', name: 'Thierry L. (Moi)', role: 'admin', totalPoints: 12450, catchesCount: 42 },
+  { id: 'u4', name: 'Sophie M.', role: 'user', totalPoints: 10820, catchesCount: 38 },
+];
+
+const ACTIVE_CONTEST = {
+  name: "Saison d'Automne 2024",
+  endDate: "30 Nov. 2024"
+};
+
 export default function ConcoursPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedFisherman, setSelectedFisherman] = useState('u3'); // Par défaut l'utilisateur connecté (Thierry L.)
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,9 +77,23 @@ export default function ConcoursPage() {
       <Navigation />
       
       <main className="container mx-auto px-4 py-8">
-        <header className="mb-8">
-          <h1 className="font-headline text-4xl font-bold">Le Concours</h1>
-          <p className="text-muted-foreground mt-2">Partagez vos exploits et gagnez des points.</p>
+        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 flex items-center gap-1">
+                <Anchor className="h-3 w-3" /> Concours Actif
+              </Badge>
+            </div>
+            <h1 className="font-headline text-4xl font-bold">{ACTIVE_CONTEST.name}</h1>
+            <p className="text-muted-foreground mt-1 text-sm italic">Fin du concours le {ACTIVE_CONTEST.endDate}</p>
+          </div>
+          <div className="flex items-center gap-4 text-sm bg-white p-3 rounded-lg border shadow-sm">
+             <Trophy className="h-5 w-5 text-yellow-500" />
+             <div>
+               <p className="font-bold text-primary">Votre Score</p>
+               <p className="font-headline font-bold">1,420 pts</p>
+             </div>
+          </div>
         </header>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -78,21 +105,44 @@ export default function ConcoursPage() {
                   <Send className="h-5 w-5 text-primary" />
                   Nouvelle Capture
                 </CardTitle>
-                <CardDescription>Remplissez les détails de votre prise pour calculer vos points.</CardDescription>
+                <CardDescription>Remplissez les détails de la prise pour le compte du pêcheur sélectionné.</CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
+                      <Label htmlFor="fisherman" className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-primary" /> Pêcheur
+                      </Label>
+                      <Select 
+                        value={selectedFisherman} 
+                        onValueChange={setSelectedFisherman}
+                        required
+                      >
+                        <SelectTrigger id="fisherman">
+                          <SelectValue placeholder="Sélectionnez le pêcheur" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MOCK_USERS.map((user) => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
                       <Label htmlFor="fish">Espèce de poisson</Label>
                       <Select required>
-                        <SelectTrigger>
+                        <SelectTrigger id="fish">
                           <SelectValue placeholder="Sélectionnez l'espèce" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="bar">Bar Franc</SelectItem>
                           <SelectItem value="dorade">Dorade Royale</SelectItem>
                           <SelectItem value="lieu">Lieu Jaune</SelectItem>
+                          <SelectItem value="anguille">Anguille</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -110,7 +160,7 @@ export default function ConcoursPage() {
                       <Input id="weight" type="number" step="0.1" placeholder="Ex: 1.2" />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="md:col-span-2 space-y-2">
                       <Label>Photo de la prise</Label>
                       <div className="border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center gap-3 bg-accent/5 hover:bg-accent/10 transition-colors cursor-pointer">
                         <Camera className="h-8 w-8 text-muted-foreground" />
@@ -119,8 +169,8 @@ export default function ConcoursPage() {
                     </div>
                   </div>
 
-                  <Button type="submit" className="w-full font-headline font-bold" disabled={isSubmitting}>
-                    {isSubmitting ? "Envoi en cours..." : "Soumettre ma capture"}
+                  <Button type="submit" className="w-full font-headline font-bold text-lg h-12" disabled={isSubmitting}>
+                    {isSubmitting ? "Envoi en cours..." : "Soumettre la capture"}
                   </Button>
                 </form>
               </CardContent>
@@ -168,7 +218,7 @@ export default function ConcoursPage() {
           <div className="space-y-6">
             <Card className="bg-primary text-white border-none shadow-xl">
               <CardHeader>
-                <CardTitle className="font-headline text-lg">Vos Statistiques</CardTitle>
+                <CardTitle className="font-headline text-lg">Statistiques de Saison</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center pb-2 border-b border-white/10">
@@ -180,11 +230,11 @@ export default function ConcoursPage() {
                   <span className="font-bold">8</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm opacity-80">Rang</span>
+                  <span className="text-sm opacity-80">Rang Actuel</span>
                   <span className="font-bold">#14</span>
                 </div>
-                <Button variant="secondary" className="w-full mt-4 font-headline" asChild>
-                  <a href="/classement">Voir le classement global</a>
+                <Button variant="secondary" className="w-full mt-4 font-headline font-bold" asChild>
+                  <a href="/classement">Voir le classement complet</a>
                 </Button>
               </CardContent>
             </Card>
@@ -198,6 +248,10 @@ export default function ConcoursPage() {
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 <div className="flex justify-between">
+                  <span>Anguille</span>
+                  <span className="font-bold">12 pts / cm</span>
+                </div>
+                <div className="flex justify-between">
                   <span>Bar Franc</span>
                   <span className="font-bold">10 pts / cm</span>
                 </div>
@@ -210,7 +264,7 @@ export default function ConcoursPage() {
                   <span className="font-bold">8 pts / cm</span>
                 </div>
                 <p className="text-xs text-muted-foreground pt-2 italic">
-                  * Seuls les poissons respectant la taille minimale sont comptabilisés.
+                  * Seuls les poissons respectant la maille (taille minimale) sont comptabilisés dans le concours.
                 </p>
               </CardContent>
             </Card>
