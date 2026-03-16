@@ -416,26 +416,27 @@ export default function AdminPage() {
             </Card>
 
             {/* USERS LIST PANEL */}
-            <Card className="border-none shadow-xl bg-[#0f172a] text-white">
+            <Card className="border-none shadow-sm bg-white">
               <CardHeader className="pb-6">
-                <CardTitle className="text-2xl font-headline flex items-center gap-2">
-                  <Users className="h-6 w-6" />
+                <CardTitle className="text-2xl font-headline flex items-center gap-2 text-slate-800">
+                  <Users className="h-6 w-6 text-[#0a3d62]" />
                   Gestion des Utilisateurs
                 </CardTitle>
+                <p className="text-slate-500 text-sm">Consultez et modifiez les profils des pêcheurs inscrits</p>
               </CardHeader>
               <CardContent className="space-y-8">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                  <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100/50">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                       <Key className="h-3 w-3" /> Codes Actifs
                     </div>
-                    <div className="text-4xl font-headline font-bold">{activeCodes?.length || 0}</div>
+                    <div className="text-4xl font-headline font-bold text-[#0a3d62]">{activeCodes?.length || 0}</div>
                   </div>
-                  <div className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700">
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
                       <Users className="h-3 w-3" /> Inscrits
                     </div>
-                    <div className="text-4xl font-headline font-bold">{users?.length || 0}</div>
+                    <div className="text-4xl font-headline font-bold text-slate-800">{users?.length || 0}</div>
                   </div>
                 </div>
 
@@ -445,41 +446,41 @@ export default function AdminPage() {
                   </h3>
                   <div className="space-y-3">
                     {loadingUsers ? (
-                      <div className="flex justify-center py-4"><Loader2 className="animate-spin text-slate-500" /></div>
+                      <div className="flex justify-center py-4"><Loader2 className="animate-spin text-slate-300" /></div>
                     ) : users?.map((u) => (
                       <div 
                         key={u.id} 
                         onClick={() => handleEditUser(u)}
-                        className="p-4 bg-slate-800/30 rounded-xl border border-slate-700/30 hover:bg-slate-800/60 transition-all cursor-pointer group"
+                        className="p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-300 transition-all cursor-pointer group"
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-4">
-                            <Avatar className="h-10 w-10 border border-slate-700">
+                            <Avatar className="h-10 w-10 border border-white shadow-sm">
                               <AvatarImage src={u.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`} />
-                              <AvatarFallback><UserIcon className="h-5 w-5 text-slate-500" /></AvatarFallback>
+                              <AvatarFallback><UserIcon className="h-5 w-5 text-slate-400" /></AvatarFallback>
                             </Avatar>
                             <div className="flex flex-col">
                               <div className="flex items-center gap-2">
-                                <span className="text-slate-200 font-bold text-sm">
+                                <span className="text-slate-800 font-bold text-sm">
                                   {u.name || "Anonyme"}
                                 </span>
                                 {u.role === 'admin' && (
-                                  <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px] h-4 uppercase font-bold">
+                                  <Badge className="bg-blue-100 text-blue-600 border-none text-[9px] h-4 uppercase font-bold">
                                     Admin
                                   </Badge>
                                 )}
                               </div>
-                              <span className="text-slate-500 text-xs truncate max-w-[200px]">
+                              <span className="text-slate-400 text-xs truncate max-w-[200px]">
                                 {u.email}
                               </span>
                             </div>
                           </div>
-                          <Edit2 className="h-4 w-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                          <Edit2 className="h-4 w-4 text-slate-300 group-hover:text-slate-500 transition-colors" />
                         </div>
                       </div>
                     ))}
                     {users?.length === 0 && !loadingUsers && (
-                      <p className="text-center py-4 text-slate-500 italic text-sm">Aucun utilisateur inscrit.</p>
+                      <p className="text-center py-4 text-slate-300 italic text-sm">Aucun utilisateur inscrit.</p>
                     )}
                   </div>
                 </div>
