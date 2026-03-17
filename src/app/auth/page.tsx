@@ -135,7 +135,7 @@ export default function AuthPage() {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
       } else if (error.code === 'auth/internal-error') {
-        errorMessage = "Erreur SMTP : Vérifiez que l'adresse 'Expéditeur' dans votre template Firebase correspond exactement à votre adresse autorisée sur Brevo.";
+        errorMessage = "Erreur SMTP possible : Vérifiez que l'adresse 'Expéditeur' configurée dans votre template Firebase est autorisée par votre serveur SMTP Brevo.";
       }
 
       toast({ 
