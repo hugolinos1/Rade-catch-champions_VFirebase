@@ -30,15 +30,11 @@ import {
   Edit, 
   Plus, 
   Trash2, 
-  Fish as FishIcon, 
   Sparkles, 
   Loader2, 
-  ClipboardList, 
-  ImageIcon, 
   Upload,
   Zap,
   X,
-  Trophy,
   Coins,
   Wand2
 } from 'lucide-react';
@@ -193,16 +189,27 @@ export default function GuidePage() {
     setIsAILoading(true);
     try {
       const result = await parseFishData(rawText);
-      setEditingFish({ ...EMPTY_FISH, ...result, id: editingFish?.id || '' });
+      // On fusionne le résultat avec EMPTY_FISH pour garantir que tous les champs requis sont présents
+      setEditingFish({ 
+        ...EMPTY_FISH, 
+        ...result, 
+        id: editingFish?.id || '',
+        imageUrl: editingFish?.imageUrl || '' // On garde l'image si elle existait déjà
+      });
       setIsParseDialogOpen(false);
       setIsDialogOpen(true);
       setRawText('');
       toast({
         title: "Recherche terminée",
-        description: `La fiche de ${result.name} a été générée avec succès.`
+        description: `La fiche de ${result.name} a été générée avec succès par l'Assistant.`
       });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Erreur IA", description: "Impossible de générer les données." });
+    } catch (error: any) {
+      console.error("Erreur IA détaillée:", error);
+      toast({ 
+        variant: "destructive", 
+        title: "Erreur IA", 
+        description: error.message || "L'Assistant n'a pas pu traiter cette demande." 
+      });
     } finally {
       setIsAILoading(false);
     }

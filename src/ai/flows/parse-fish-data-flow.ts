@@ -1,7 +1,7 @@
 'use server';
 /**
- * @fileOverview Ce flux Genkit permet soit d'extraire des données structurées d'un texte, 
- * soit de générer une fiche complète à partir du nom d'un poisson en utilisant les connaissances de l'IA.
+ * @fileOverview Ce flux Genkit permet d'extraire des données structurées d'un texte ou 
+ * de générer une fiche complète à partir du nom d'un poisson en utilisant les connaissances de l'IA.
  *
  * - parseFishData - Fonction principale de recherche et d'analyse.
  */
@@ -22,21 +22,21 @@ const FishSpeciesSchema = z.object({
   averageSize: z.string().describe('Taille moyenne (ex: 30-50 cm).'),
   keyFeatures: z.string().describe('Caractéristiques physiques distinctives.'),
   fishingTips: z.string().describe('Conseils pour la capture (leurres, moments de marée).'),
+  eligibilityCriteria: z.string().describe('Critères pour que la prise soit valide au concours.'),
   rarity: z.enum(['Commun', 'Rare', 'Très rare']).describe('Niveau de rareté.'),
-  imageUrl: z.string().optional().describe('URL d\'une image (laisser vide si non trouvée).'),
-  techniques: z.array(z.string()).describe('Liste des techniques de pêche (ex: Leurre, Appât naturel).'),
-  spots: z.array(z.string()).describe('Liste de spots recommandés en Rade de Brest ou presqu\'île de Crozon.'),
+  techniques: z.array(z.string()).describe('Liste des techniques de pêche recommandées.'),
+  spots: z.array(z.string()).describe('Liste de spots réels en Rade de Brest.'),
   bonusPoints: z.array(z.object({
     threshold: z.number().describe('Seuil de taille en cm.'),
     points: z.number().describe('Points bonus accordés.')
-  })).optional().describe('Paliers de bonus pour les spécimens exceptionnels.')
+  })).describe('Paliers de bonus pour les gros spécimens.')
 });
 
 export type ParseFishDataOutput = z.infer<typeof FishSpeciesSchema>;
 
 export async function parseFishData(input: string): Promise<ParseFishDataOutput> {
   const {output} = await parseFishPrompt(input);
-  if (!output) throw new Error("Échec de la génération des données du poisson.");
+  if (!output) throw new Error("L'IA n'a pas pu générer les données du poisson.");
   return output;
 }
 
@@ -44,24 +44,24 @@ const parseFishPrompt = ai.definePrompt({
   name: 'parseFishPrompt',
   input: {schema: ParseFishDataInputSchema},
   output: {schema: FishSpeciesSchema},
-  prompt: `Tu es un expert en ichthyologie et un guide de pêche spécialisé dans la Rade de Brest et la pointe de Bretagne.
+  prompt: `Tu es un expert en ichthyologie et un guide de pêche professionnel spécialisé dans la Rade de Brest et la Bretagne.
 
-Ton rôle est de fournir une fiche technique complète et structurée pour l'espèce demandée.
+Ton rôle est de générer une fiche technique ultra-complète pour l'espèce de poisson indiquée.
 
-### DEUX SCÉNARIOS POSSIBLES :
-1. **ENTRÉE = NOM DE POISSON** (ex: "Bar commun", "Dorade grise") : 
-   Utilise tes connaissances encyclopédiques pour remplir TOUS les champs de la fiche. Sois précis sur la maille légale en France (Atlantique/Manche).
-2. **ENTRÉE = TEXTE BRUT** : 
-   Extrais les informations du texte pour remplir la fiche. Si des informations manquent, complète-les avec tes connaissances pour que la fiche soit exhaustive.
+### ANALYSE DE L'ENTRÉE :
+Si l'entrée est un simple nom de poisson (ex: "Bar", "Lieu jaune"), utilise tes connaissances encyclopédiques pour remplir tous les champs.
+Si l'entrée est un texte descriptif, extrais les données et complète les informations manquantes avec tes connaissances.
 
-### INSTRUCTIONS SPÉCIFIQUES :
-- **Points par cm** : Par défaut 10, sauf si l'espèce est noble/difficile (ex: Bar, Bar de ligne) où tu peux monter à 15 ou 20.
-- **Taille légale** : Utilise la réglementation officielle actuelle.
-- **Bonus** : Crée 2 ou 3 paliers de bonus cohérents pour la "grosse prise" (ex: pour un bar, bonus à 60cm, 70cm et 80cm).
-- **Rareté** : 'Très rare' pour les espèces peu présentes en rade, 'Rare' pour les saisonniers, 'Commun' pour les résidents.
-- **Localisation** : Cite des zones réelles de la Rade de Brest (ex: Goulet, Banc du Corbeau, Plougastel, Crozon).
+### RÈGLES DE GÉNÉRATION :
+- **Points par cm** : Défini une valeur cohérente (10 par défaut, jusqu'à 20 pour les poissons nobles comme le Bar ou la Royale).
+- **Taille légale** : Indique la maille légale actuelle en zone Atlantique/Manche.
+- **Description** : Rédige un texte captivant de 3-4 phrases.
+- **Bonus** : Crée 3 paliers de bonus logiques (ex: pour un bar, bonus à 60, 70 et 80cm).
+- **Géographie** : Cite impérativement des lieux réels de la Rade de Brest (Le Goulet, l'Aulne, les ducs d'Albe, etc.).
 - **Langue** : Réponds exclusivement en Français.
 
-Texte ou Nom fourni :
+IMPORTANT : Ne génère aucune URL d'image. Laisse ce champ vide ou gère-le via l'upload utilisateur.
+
+Entrée fournie :
 {{{this}}}`,
 });
