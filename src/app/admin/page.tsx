@@ -536,12 +536,12 @@ export default function AdminPage() {
 
         {activeTab === 'competitions' && (
           <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="space-y-1">
                 <h2 className="text-3xl font-headline font-bold text-slate-900">Gestion des Compétitions</h2>
                 <p className="text-slate-500">Créez et gérez les concours de pêche.</p>
               </div>
-              <Button onClick={() => setIsContestDialogOpen(true)} className="bg-[#0a3d62] font-bold w-full sm:w-auto">
+              <Button onClick={() => setIsContestDialogOpen(true)} className="bg-[#0a3d62] font-bold w-full md:w-auto h-11">
                 <Plus className="mr-2 h-5 w-5" /> Nouveau Concours
               </Button>
             </div>
