@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Send, History, Scale, Anchor, Loader2, Camera, MapPin, X, User as UserIcon } from 'lucide-react';
+import { Send, History, Scale, Anchor, Loader2, Camera, MapPin, X, User as UserIcon, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef, useMemo } from 'react';
 import { Catch, UserProfile, FishSpecies, Contest } from '@/lib/types';
@@ -103,7 +103,6 @@ export default function ConcoursPage() {
       const fish = species?.find(s => s.id === selectedFishId);
       const sizeNum = parseFloat(length);
       
-      // Use the pointsPerCm from the fish species, default to 10 if not set
       const pointsPerCm = fish?.pointsPerCm ?? 10;
       const pointsCalculated = pointsPerCm * sizeNum;
 
@@ -118,15 +117,13 @@ export default function ConcoursPage() {
         imageUrl: imageUrl,
         date: new Date().toISOString(),
         points: pointsCalculated,
-        status: 'approved', // Default is Approved
+        status: 'approved',
         location: location
       };
 
-      // Add catch
       const catchesCol = collection(firestore, 'catches');
       addDocumentNonBlocking(catchesCol, newCatch);
 
-      // Update user points and count immediately since it's approved by default
       const userRef = doc(firestore, 'users', selectedFisherman);
       updateDocumentNonBlocking(userRef, {
         totalPoints: increment(pointsCalculated),
@@ -167,7 +164,7 @@ export default function ConcoursPage() {
                 <CardTitle className="font-headline flex items-center gap-2">
                   <Send className="h-5 w-5 text-primary" /> Nouvelle Capture
                 </CardTitle>
-                <CardDescription>Saisissez les détails et prenez une photo pour preuve.</CardDescription>
+                <CardDescription>Saisissez les détails et prenez une photo ou choisissez-la dans votre galerie.</CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -178,11 +175,16 @@ export default function ConcoursPage() {
                         onClick={() => fileInputRef.current?.click()}
                         className="border-2 border-dashed border-slate-200 rounded-2xl h-56 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50"
                       >
-                        <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center mb-3">
-                          <Camera className="h-7 w-7 text-primary" />
+                        <div className="flex gap-4 mb-3">
+                          <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center">
+                            <Camera className="h-7 w-7 text-primary" />
+                          </div>
+                          <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center">
+                            <ImageIcon className="h-7 w-7 text-primary" />
+                          </div>
                         </div>
-                        <span className="text-sm font-bold text-slate-700">Prendre une photo</span>
-                        <span className="text-xs text-slate-400 mt-1">Cliquez pour ouvrir l'appareil photo</span>
+                        <span className="text-sm font-bold text-slate-700 text-center px-4">Prendre une photo ou choisir dans la galerie</span>
+                        <span className="text-xs text-slate-400 mt-1">Cliquez pour capturer ou parcourir vos fichiers</span>
                       </div>
                     ) : (
                       <div className="relative rounded-2xl overflow-hidden h-72 shadow-md group">
@@ -200,7 +202,6 @@ export default function ConcoursPage() {
                       className="hidden" 
                       onChange={handleFileChange} 
                       accept="image/*" 
-                      capture="environment" 
                     />
                   </div>
 
