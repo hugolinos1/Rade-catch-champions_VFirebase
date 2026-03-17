@@ -80,7 +80,13 @@ export default function GuidePage() {
 
   const fishList = useMemo(() => {
     if (!rawFishList) return [];
-    return rawFishList.map(fish => ({
+    
+    // Tri alphabétique par nom avant le mapping
+    const sorted = [...rawFishList].sort((a, b) => 
+      a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' })
+    );
+
+    return sorted.map(fish => ({
       ...fish,
       imageUrl: fish.image || fish.imageUrl || '',
       minSize: fish.legalSize || fish.minSize || 0,
@@ -188,7 +194,6 @@ export default function GuidePage() {
     if (!rawText.trim()) return;
     setIsAILoading(true);
     try {
-      // Le flux Genkit peut mettre du temps sur les premières requêtes (cold start)
       const result = await parseFishData(rawText);
       
       setEditingFish({ 
@@ -467,7 +472,7 @@ export default function GuidePage() {
                   <CardContent>
                     <p className="text-slate-600 leading-relaxed">{viewingFish.description}</p>
                   </CardContent>
-                </Card>
+                </div>
               </div>
             )}
           </DialogContent>
@@ -609,9 +614,9 @@ export default function GuidePage() {
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" /> Assistant de Recherche IA
               </DialogTitle>
-              <DialogDescription>
+              <DialogHeaderDescription>
                 Saisissez le **nom du poisson** (ex: Bar commun). L'IA recherchera toutes les informations pour vous.
-              </DialogDescription>
+              </DialogHeaderDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
               <div className="space-y-2">
