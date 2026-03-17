@@ -27,6 +27,7 @@ export default function ConcoursPage() {
   
   // File Upload State
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -77,6 +78,7 @@ export default function ConcoursPage() {
     setSelectedFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -176,12 +178,20 @@ export default function ConcoursPage() {
                         className="border-2 border-dashed border-slate-200 rounded-2xl h-56 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors bg-slate-50/50"
                       >
                         <div className="flex gap-4 mb-3">
-                          <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center">
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); cameraInputRef.current?.click(); }}
+                            className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-110 transition-transform active:bg-slate-100"
+                          >
                             <Camera className="h-7 w-7 text-primary" />
-                          </div>
-                          <div className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center">
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+                            className="w-14 h-14 bg-white rounded-full shadow-sm flex items-center justify-center hover:scale-110 transition-transform active:bg-slate-100"
+                          >
                             <ImageIcon className="h-7 w-7 text-primary" />
-                          </div>
+                          </button>
                         </div>
                         <span className="text-sm font-bold text-slate-700 text-center px-4">Prendre une photo ou choisir dans la galerie</span>
                         <span className="text-xs text-slate-400 mt-1">Cliquez pour capturer ou parcourir vos fichiers</span>
@@ -196,12 +206,21 @@ export default function ConcoursPage() {
                         </div>
                       </div>
                     )}
+                    {/* Hidden inputs for Camera and Gallery */}
                     <input 
                       type="file" 
                       ref={fileInputRef} 
                       className="hidden" 
                       onChange={handleFileChange} 
                       accept="image/*" 
+                    />
+                    <input 
+                      type="file" 
+                      ref={cameraInputRef} 
+                      className="hidden" 
+                      onChange={handleFileChange} 
+                      accept="image/*" 
+                      capture="environment"
                     />
                   </div>
 
