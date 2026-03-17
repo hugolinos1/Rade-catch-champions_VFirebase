@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Fish, Trophy, CirclePlus, Settings, Home, LogIn, User, LogOut } from 'lucide-react';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,6 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { UserProfile } from '@/lib/types';
 
 const navItems = [
   { href: '/', label: 'Accueil', icon: Home },
@@ -26,14 +28,26 @@ const navItems = [
 
 export function Navigation() {
   const pathname = usePathname();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
+
+  // Fetch the user's profile from Firestore to get the custom avatarUrl
+  const userDocRef = useMemoFirebase(() => 
+    user ? doc(firestore, 'users', user.uid) : null, 
+  [firestore, user]);
+  
+  const { data: profile } = useDoc<UserProfile>(userDocRef);
 
   const handleLogout = () => {
     auth.signOut();
   };
 
   const isAnonymous = user?.isAnonymous;
+
+  // Determine the best name and avatar to display
+  const displayName = profile?.name || user?.displayName || "Pêcheur";
+  const avatarSrc = profile?.avatarUrl || user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${displayName}`;
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -73,8 +87,8 @@ export function Navigation() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.displayName}`} />
+                    <Avatar className="h-8 w-8 border border-slate-100">
+                      <AvatarImage src={avatarSrc} />
                       <AvatarFallback><User className="h-4 w-4" /></AvatarFallback>
                     </Avatar>
                   </Button>
@@ -82,10 +96,19 @@ export function Navigation() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.displayName || "Pêcheur"}</p>
+                      <p className="text-sm font-medium leading-none">{displayName}</p>
                       <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                     </div>
                   </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {profile?.role === 'admin' && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin">
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Administration</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />
