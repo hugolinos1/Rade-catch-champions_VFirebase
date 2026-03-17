@@ -135,7 +135,7 @@ export default function AuthPage() {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
       } else if (error.code === 'auth/internal-error') {
-        errorMessage = "Erreur SMTP probable : L'adresse 'Expéditeur' configurée dans votre template Firebase n'est pas autorisée par votre serveur SMTP Brevo. Vérifiez l'adresse From dans la console Firebase.";
+        errorMessage = "Conflit SMTP : Votre serveur Brevo refuse d'envoyer un e-mail au nom du domaine par défaut de Firebase. Solution : Désactivez le SMTP personnalisé dans la console Firebase pour utiliser l'envoi automatique.";
       }
 
       toast({ 
