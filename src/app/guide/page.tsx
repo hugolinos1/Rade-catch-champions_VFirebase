@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Navigation } from '@/components/Navigation';
@@ -40,7 +39,8 @@ import {
   Zap,
   X,
   Trophy,
-  Coins
+  Coins,
+  Wand2
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useRef, useMemo } from 'react';
@@ -197,8 +197,12 @@ export default function GuidePage() {
       setIsParseDialogOpen(false);
       setIsDialogOpen(true);
       setRawText('');
+      toast({
+        title: "Recherche terminée",
+        description: `La fiche de ${result.name} a été générée avec succès.`
+      });
     } catch (error) {
-      toast({ variant: "destructive", title: "Erreur IA", description: "Analyse impossible." });
+      toast({ variant: "destructive", title: "Erreur IA", description: "Impossible de générer les données." });
     } finally {
       setIsAILoading(false);
     }
@@ -212,7 +216,6 @@ export default function GuidePage() {
     }
   };
 
-  // Helpers for list management in editing form
   const addTechnique = () => {
     if (!editingFish) return;
     setEditingFish({ ...editingFish, techniques: [...(editingFish.techniques || []), ""] });
@@ -281,10 +284,10 @@ export default function GuidePage() {
             </div>
             {isAdmin && (
               <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setIsParseDialogOpen(true)}>
-                  <ClipboardList className="h-4 w-4 mr-2" /> Import IA
+                <Button variant="outline" onClick={() => setIsParseDialogOpen(true)} className="border-primary/20 hover:bg-primary/5">
+                  <Wand2 className="h-4 w-4 mr-2 text-primary" /> Assistant IA
                 </Button>
-                <Button onClick={handleCreateClick} className="font-bold">
+                <Button onClick={handleCreateClick} className="font-bold bg-[#1e4e6e] hover:bg-[#1e4e6e]/90">
                   <Plus className="h-4 w-4 mr-2" /> Ajouter
                 </Button>
               </div>
@@ -360,7 +363,6 @@ export default function GuidePage() {
           </div>
         )}
 
-        {/* DIALOG DETAILS */}
         <Dialog open={isDetailsOpen} onOpenChange={setIsDetailsOpen}>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-50">
             <DialogHeader className="p-6 bg-white border-b">
@@ -373,9 +375,6 @@ export default function GuidePage() {
                   {viewingFish?.rarity}
                 </Badge>
               </div>
-              <DialogDescription>
-                Fiche descriptive complète pour l'espèce {viewingFish?.name}, incluant la maille, les techniques et les bonus.
-              </DialogDescription>
             </DialogHeader>
             
             {viewingFish && (
@@ -459,16 +458,12 @@ export default function GuidePage() {
           </DialogContent>
         </Dialog>
 
-        {/* DIALOG EDIT */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-slate-800">
                 {editingFish?.id ? `Modifier ${editingFish.name}` : "Nouvelle espèce"}
               </DialogTitle>
-              <DialogDescription>
-                Renseignez les informations détaillées de l'espèce pour le guide.
-              </DialogDescription>
             </DialogHeader>
             {editingFish && (
               <div className="space-y-6 py-4">
@@ -492,7 +487,7 @@ export default function GuidePage() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-slate-600 font-bold">Taille Moyenne (ex: 15-30cm)</Label>
+                    <Label className="text-slate-600 font-bold">Taille Moyenne</Label>
                     <Input className="bg-slate-50 border-slate-200" value={editingFish.averageSize} onChange={e => setEditingFish({...editingFish, averageSize: e.target.value})} />
                   </div>
                   <div className="space-y-1.5">
@@ -514,63 +509,59 @@ export default function GuidePage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-6">
-                  {/* Techniques Section */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <Label className="text-slate-600 font-bold">Techniques</Label>
-                      <Button variant="outline" size="sm" onClick={addTechnique} className="h-7 text-xs bg-slate-50">
+                      <Button variant="outline" size="sm" onClick={addTechnique} className="h-7 text-xs">
                         <Plus className="h-3 w-3 mr-1" /> Ajouter
                       </Button>
                     </div>
                     <div className="space-y-2">
                       {editingFish.techniques?.map((tech, idx) => (
                         <div key={idx} className="flex gap-2">
-                          <Input className="bg-slate-50 border-slate-200 h-9" value={tech} onChange={(e) => updateTechnique(idx, e.target.value)} />
-                          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removeTechnique(idx)}><Trash2 className="h-4 w-4" /></Button>
+                          <Input className="h-9" value={tech} onChange={(e) => updateTechnique(idx, e.target.value)} />
+                          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeTechnique(idx)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Spots Section */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label className="text-slate-600 font-bold">Spots (Crozon / Rade)</Label>
-                      <Button variant="outline" size="sm" onClick={addSpot} className="h-7 text-xs bg-slate-50">
+                      <Label className="text-slate-600 font-bold">Spots</Label>
+                      <Button variant="outline" size="sm" onClick={addSpot} className="h-7 text-xs">
                         <Plus className="h-3 w-3 mr-1" /> Ajouter
                       </Button>
                     </div>
                     <div className="space-y-2">
                       {editingFish.spots?.map((spot, idx) => (
                         <div key={idx} className="flex gap-2">
-                          <Input className="bg-slate-50 border-slate-200 h-9" value={spot} onChange={(e) => updateSpot(idx, e.target.value)} />
-                          <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removeSpot(idx)}><Trash2 className="h-4 w-4" /></Button>
+                          <Input className="h-9" value={spot} onChange={(e) => updateSpot(idx, e.target.value)} />
+                          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removeSpot(idx)}><Trash2 className="h-4 w-4" /></Button>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Système de Points Section */}
                 <div className="space-y-3 pt-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-slate-600 font-bold">Système de Points Bonus</Label>
-                    <Button variant="outline" size="sm" onClick={addPalier} className="h-7 text-xs bg-slate-50">
+                    <Label className="text-slate-600 font-bold">Points Bonus</Label>
+                    <Button variant="outline" size="sm" onClick={addPalier} className="h-7 text-xs">
                       <Plus className="h-3 w-3 mr-1" /> Palier
                     </Button>
                   </div>
                   <div className="space-y-2">
                     {editingFish.bonusPoints?.map((bp, idx) => (
                       <div key={idx} className="flex gap-3 items-center">
-                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" placeholder="Seuil cm" value={bp.threshold} onChange={(e) => updatePalier(idx, 'threshold', parseInt(e.target.value) || 0)} />
-                        <Input className="bg-slate-50 border-slate-200 h-9" type="number" placeholder="Points" value={bp.points} onChange={(e) => updatePalier(idx, 'points', parseInt(e.target.value) || 0)} />
-                        <Button variant="ghost" size="icon" className="h-9 w-9 text-slate-400" onClick={() => removePalier(idx)}><Trash2 className="h-4 w-4" /></Button>
+                        <Input className="h-9" type="number" placeholder="Seuil cm" value={bp.threshold} onChange={(e) => updatePalier(idx, 'threshold', parseInt(e.target.value) || 0)} />
+                        <Input className="h-9" type="number" placeholder="Points" value={bp.points} onChange={(e) => updatePalier(idx, 'points', parseInt(e.target.value) || 0)} />
+                        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => removePalier(idx)}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Photo de l'espèce Section */}
                 <div className="space-y-2 pt-4">
                   <Label className="text-slate-600 font-bold">Photo de l'espèce</Label>
                   <div className="flex items-center gap-3">
@@ -581,37 +572,52 @@ export default function GuidePage() {
                     )}
                     <div className="flex-1 flex gap-2">
                        <input type="file" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-                       <Button variant="outline" className="w-full bg-white border-slate-200 text-slate-500 justify-start font-normal h-10" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                         {isUploading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : null}
-                         Choisir un fichier <span className="ml-2 text-slate-400">Aucun fichier choisi</span>
+                       <Button variant="outline" className="w-full text-slate-500 justify-start h-10" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                         {isUploading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Upload className="h-4 w-4 mr-2" />}
+                         Choisir une photo
                        </Button>
                     </div>
                   </div>
                 </div>
               </div>
             )}
-            <DialogFooter className="gap-2 sm:gap-0 pt-4">
-              <Button variant="ghost" className="text-slate-600" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-              <Button className="bg-[#0f3450] hover:bg-[#0f3450]/90 text-white font-bold px-8" onClick={handleSaveFish}>Sauvegarder</Button>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Annuler</Button>
+              <Button className="bg-[#1e4e6e] font-bold px-8" onClick={handleSaveFish}>Sauvegarder</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* IA IMPORT DIALOG */}
         <Dialog open={isParseDialogOpen} onOpenChange={setIsParseDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Importation par IA</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" /> Assistant de Recherche IA
+              </DialogTitle>
               <DialogDescription>
-                Collez un texte descriptif pour extraire automatiquement les données de l'espèce.
+                Saisissez le **nom du poisson** (ex: Bar commun) ou collez une description. L'IA recherchera toutes les informations pour vous.
               </DialogDescription>
             </DialogHeader>
-            <div className="py-4">
-              <Textarea placeholder="Ex: L'anguille mesure entre 40 et 80cm..." className="min-h-[200px]" value={rawText} onChange={(e) => setRawText(e.target.value)} />
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Nom ou texte descriptif</Label>
+                <Textarea 
+                  placeholder="Ex: Bar de ligne ou L'anguille mesure entre 40 et 80cm..." 
+                  className="min-h-[150px]" 
+                  value={rawText} 
+                  onChange={(e) => setRawText(e.target.value)} 
+                />
+              </div>
             </div>
             <DialogFooter>
-              <Button onClick={handleAIParse} disabled={isAILoading}>
-                {isAILoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" />} Analyser
+              <Button variant="ghost" onClick={() => setIsParseDialogOpen(false)}>Annuler</Button>
+              <Button 
+                onClick={handleAIParse} 
+                disabled={isAILoading || !rawText.trim()}
+                className="bg-primary hover:bg-primary/90 font-bold"
+              >
+                {isAILoading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Wand2 className="mr-2 h-4 w-4" />} 
+                Lancer la recherche
               </Button>
             </DialogFooter>
           </DialogContent>
