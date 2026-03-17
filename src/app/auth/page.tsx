@@ -120,20 +120,21 @@ export default function AuthPage() {
       await sendPasswordResetEmail(auth, resetEmail);
       toast({ 
         title: "E-mail envoyé", 
-        description: "Un lien de réinitialisation a été envoyé à votre adresse e-mail. Pensez à vérifier vos spams." 
+        description: "Si un compte est associé à cette adresse, un lien de réinitialisation a été envoyé." 
       });
       setIsResetDialogOpen(false);
       setResetEmail('');
     } catch (error: any) {
       console.error("Password reset error:", error);
-      let errorMessage = "Une erreur est survenue lors de l'envoi de l'e-mail.";
+      let errorMessage = "Une erreur technique est survenue lors de l'envoi de l'e-mail.";
       
-      if (error.code === 'auth/user-not-found') {
-        errorMessage = "Aucun utilisateur n'est enregistré avec cette adresse e-mail.";
-      } else if (error.code === 'auth/invalid-email') {
+      // Note: With enumeration protection, these specific errors might not trigger for missing users
+      if (error.code === 'auth/invalid-email') {
         errorMessage = "L'adresse e-mail saisie n'est pas valide.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = "Le domaine actuel n'est pas autorisé à envoyer des e-mails. Vérifiez la configuration Firebase.";
       }
 
       toast({ 
