@@ -71,8 +71,10 @@ export default function AdminPage() {
   // State for modals
   const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [editingCatch, setEditingCatch] = useState<Catch | null>(null);
+  const [editingContest, setEditingContest] = useState<Contest | null>(null);
   const [isUserUpdating, setIsUserUpdating] = useState(false);
   const [isCatchUpdating, setIsCatchUpdating] = useState(false);
+  const [isContestUpdating, setIsContestUpdating] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isContestDialogOpen, setIsContestDialogOpen] = useState(false);
   
@@ -220,6 +222,29 @@ export default function AdminPage() {
       setIsContestDialogOpen(false);
       setNewContest({ name: '', startDate: '', endDate: '', status: 'draft' });
       toast({ title: "Compétition créée", description: `${contestData.name} a été ajouté.` });
+    }, 500);
+  };
+
+  const handleEditContest = (contest: Contest) => {
+    setEditingContest({ ...contest });
+  };
+
+  const handleSaveEditedContest = () => {
+    if (!editingContest) return;
+    setIsContestUpdating(true);
+
+    const contestRef = doc(firestore, 'competitions', editingContest.id);
+    updateDocumentNonBlocking(contestRef, {
+      name: editingContest.name,
+      startDate: editingContest.startDate,
+      endDate: editingContest.endDate,
+      status: editingContest.status
+    });
+
+    setTimeout(() => {
+      setIsContestUpdating(false);
+      setEditingContest(null);
+      toast({ title: "Compétition mise à jour" });
     }, 500);
   };
 
@@ -572,7 +597,7 @@ export default function AdminPage() {
                       <span>{new Date(contest.startDate).toLocaleDateString()} - {new Date(contest.endDate).toLocaleDateString()}</span>
                     </div>
                     
-                    <div className="pt-4 flex gap-2">
+                    <div className="pt-4 flex flex-wrap gap-2">
                       {contest.status !== 'active' && (
                         <Button 
                           variant="outline" 
@@ -593,6 +618,14 @@ export default function AdminPage() {
                           <Clock className="h-3 w-3 mr-1 text-slate-500" /> Clôturer
                         </Button>
                       )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-slate-400 hover:text-primary"
+                        onClick={() => handleEditContest(contest)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -667,6 +700,70 @@ export default function AdminPage() {
                     className="bg-[#0a3d62] font-bold px-8"
                   >
                     {isCreatingContest ? <Loader2 className="animate-spin mr-2" /> : "Créer le concours"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Edit Contest Dialog */}
+            <Dialog open={!!editingContest} onOpenChange={(open) => !open && setEditingContest(null)}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-xl font-bold">Modifier le Concours</DialogTitle>
+                  <DialogDescription>Mettez à jour les informations de la compétition.</DialogDescription>
+                </DialogHeader>
+                {editingContest && (
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-1.5">
+                      <Label>Nom du Concours</Label>
+                      <Input 
+                        placeholder="Ex: Rade Catch Été 2025" 
+                        value={editingContest.name}
+                        onChange={e => setEditingContest({ ...editingContest, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>Date de début</Label>
+                        <Input 
+                          type="datetime-local" 
+                          value={editingContest.startDate}
+                          onChange={e => setEditingContest({ ...editingContest, startDate: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Date de fin</Label>
+                        <Input 
+                          type="datetime-local" 
+                          value={editingContest.endDate}
+                          onChange={e => setEditingContest({ ...editingContest, endDate: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Statut</Label>
+                      <Select 
+                        value={editingContest.status} 
+                        onValueChange={(v: any) => setEditingContest({ ...editingContest, status: v })}
+                      >
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Brouillon</SelectItem>
+                          <SelectItem value="active">Actif</SelectItem>
+                          <SelectItem value="completed">Terminé</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                )}
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setEditingContest(null)}>Annuler</Button>
+                  <Button 
+                    onClick={handleSaveEditedContest} 
+                    disabled={isContestUpdating}
+                    className="bg-[#0a3d62] font-bold px-8"
+                  >
+                    {isContestUpdating ? <Loader2 className="animate-spin mr-2" /> : "Enregistrer"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
