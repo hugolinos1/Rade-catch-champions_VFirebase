@@ -119,27 +119,28 @@ export default function AuthPage() {
     try {
       await sendPasswordResetEmail(auth, resetEmail);
       toast({ 
-        title: "E-mail envoyé", 
-        description: "Si un compte est associé à cette adresse, un lien de réinitialisation a été envoyé." 
+        title: "Demande envoyée", 
+        description: "Si un compte est associé à " + resetEmail + ", un lien de réinitialisation a été envoyé." 
       });
       setIsResetDialogOpen(false);
       setResetEmail('');
     } catch (error: any) {
       console.error("Password reset error:", error);
-      let errorMessage = "Une erreur technique est survenue lors de l'envoi de l'e-mail.";
+      let errorMessage = "Une erreur technique est survenue.";
       
-      // Note: With enumeration protection, these specific errors might not trigger for missing users
-      if (error.code === 'auth/invalid-email') {
-        errorMessage = "L'adresse e-mail saisie n'est pas valide.";
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = "Aucun utilisateur trouvé avec cette adresse e-mail.";
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = "L'adresse e-mail n'est pas valide.";
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
-      } else if (error.code === 'auth/unauthorized-domain') {
-        errorMessage = "Le domaine actuel n'est pas autorisé à envoyer des e-mails. Vérifiez la configuration Firebase.";
+      } else if (error.code === 'auth/internal-error') {
+        errorMessage = "Erreur interne du serveur (vérifiez votre configuration SMTP dans la console Firebase).";
       }
 
       toast({ 
         variant: "destructive", 
-        title: "Erreur d'envoi", 
+        title: "Erreur", 
         description: errorMessage
       });
     } finally {
