@@ -188,27 +188,35 @@ export default function GuidePage() {
     if (!rawText.trim()) return;
     setIsAILoading(true);
     try {
+      // Le flux Genkit peut mettre du temps sur les premières requêtes (cold start)
       const result = await parseFishData(rawText);
-      // On fusionne le résultat avec EMPTY_FISH pour garantir que tous les champs requis sont présents
+      
       setEditingFish({ 
         ...EMPTY_FISH, 
         ...result, 
         id: editingFish?.id || '',
-        imageUrl: editingFish?.imageUrl || '' // On garde l'image si elle existait déjà
+        imageUrl: editingFish?.imageUrl || ''
       });
       setIsParseDialogOpen(false);
       setIsDialogOpen(true);
       setRawText('');
       toast({
         title: "Recherche terminée",
-        description: `La fiche de ${result.name} a été générée avec succès par l'Assistant.`
+        description: `La fiche de ${result.name} a été générée avec succès.`
       });
     } catch (error: any) {
       console.error("Erreur IA détaillée:", error);
+      let errorMsg = "L'Assistant n'a pas pu traiter cette demande.";
+      if (error.message?.includes('API key')) {
+        errorMsg = "La clé API Google AI est manquante ou invalide.";
+      } else if (error.message?.includes('response was received')) {
+        errorMsg = "Le serveur a mis trop de temps à répondre. Réessayez avec un nom plus court.";
+      }
+      
       toast({ 
         variant: "destructive", 
         title: "Erreur IA", 
-        description: error.message || "L'Assistant n'a pas pu traiter cette demande." 
+        description: errorMsg
       });
     } finally {
       setIsAILoading(false);
@@ -602,17 +610,17 @@ export default function GuidePage() {
                 <Sparkles className="h-5 w-5 text-primary" /> Assistant de Recherche IA
               </DialogTitle>
               <DialogDescription>
-                Saisissez le **nom du poisson** (ex: Bar commun) ou collez une description. L'IA recherchera toutes les informations pour vous.
+                Saisissez le **nom du poisson** (ex: Bar commun). L'IA recherchera toutes les informations pour vous.
               </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
               <div className="space-y-2">
-                <Label>Nom ou texte descriptif</Label>
-                <Textarea 
-                  placeholder="Ex: Bar de ligne ou L'anguille mesure entre 40 et 80cm..." 
-                  className="min-h-[150px]" 
+                <Label>Nom du poisson</Label>
+                <Input 
+                  placeholder="Ex: Bar de ligne, Daurade royale..." 
                   value={rawText} 
                   onChange={(e) => setRawText(e.target.value)} 
+                  onKeyDown={(e) => e.key === 'Enter' && rawText.trim() && handleAIParse()}
                 />
               </div>
             </div>
