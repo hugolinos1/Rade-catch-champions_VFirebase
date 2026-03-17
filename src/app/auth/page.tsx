@@ -31,7 +31,7 @@ export default function AuthPage() {
   const firestore = useFirestore();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [isResetLoading, setIsResetLoading] = useState(false);
+  const [isResetLoading, setIsLoadingReset] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -115,7 +115,7 @@ export default function AuthPage() {
       return;
     }
 
-    setIsResetLoading(true);
+    setIsLoadingReset(true);
     try {
       await sendPasswordResetEmail(auth, resetEmail);
       toast({ 
@@ -125,7 +125,7 @@ export default function AuthPage() {
       setIsResetDialogOpen(false);
       setResetEmail('');
     } catch (error: any) {
-      console.error("Password reset error:", error);
+      console.error("Password reset error details:", error);
       let errorMessage = "Une erreur technique est survenue.";
       
       if (error.code === 'auth/user-not-found') {
@@ -135,7 +135,7 @@ export default function AuthPage() {
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "Trop de tentatives. Veuillez réessayer plus tard.";
       } else if (error.code === 'auth/internal-error') {
-        errorMessage = "Erreur SMTP possible : Vérifiez que l'adresse 'Expéditeur' configurée dans votre template Firebase est autorisée par votre serveur SMTP Brevo.";
+        errorMessage = "Erreur SMTP probable : L'adresse 'Expéditeur' configurée dans votre template Firebase n'est pas autorisée par votre serveur SMTP Brevo. Vérifiez l'adresse From dans la console Firebase.";
       }
 
       toast({ 
@@ -144,7 +144,7 @@ export default function AuthPage() {
         description: errorMessage
       });
     } finally {
-      setIsResetLoading(false);
+      setIsLoadingReset(false);
     }
   };
 
