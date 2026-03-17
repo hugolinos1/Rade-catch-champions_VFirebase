@@ -166,7 +166,7 @@ export default function AdminPage() {
     updateDocumentNonBlocking(userRef, {
       name: editingUser.name,
       avatarUrl: editingUser.avatarUrl || null,
-      role: editingUser.role // Enregistre le rôle (admin ou user)
+      role: editingUser.role 
     });
 
     setTimeout(() => {
@@ -312,9 +312,9 @@ export default function AdminPage() {
   };
 
   const tabs = [
-    { id: 'access', label: 'Accès & Utilisateurs' },
-    { id: 'competitions', label: 'Compétitions' },
-    { id: 'captures', label: 'Gestion des Captures' },
+    { id: 'access', label: 'Accès & Utilisateurs', icon: Key },
+    { id: 'competitions', label: 'Compétitions', icon: Trophy },
+    { id: 'captures', label: 'Gestion des Captures', icon: Fish },
   ];
 
   if (loadingProfile) {
@@ -356,21 +356,25 @@ export default function AdminPage() {
       <Navigation />
       
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex flex-wrap gap-4 mb-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-all",
-                activeTab === tab.id 
-                  ? "bg-white border-2 border-slate-900 text-slate-900 shadow-sm" 
-                  : "text-slate-500 hover:text-slate-900"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Navigation par onglets optimisée pour mobile */}
+        <div className="overflow-x-auto pb-4 -mx-4 px-4 mb-8 no-scrollbar">
+          <div className="flex flex-nowrap gap-3">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "px-5 py-2.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-2 border-2",
+                  activeTab === tab.id 
+                    ? "bg-[#0a3d62] border-[#0a3d62] text-white shadow-md scale-105" 
+                    : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                )}
+              >
+                <tab.icon className={cn("h-4 w-4", activeTab === tab.id ? "text-white" : "text-slate-400")} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {activeTab === 'access' && (
@@ -406,7 +410,7 @@ export default function AdminPage() {
                             {new Date(c.createdAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-all">
                           <Button 
                             variant="ghost" 
                             size="icon" 
@@ -499,7 +503,7 @@ export default function AdminPage() {
                               </span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 md:opacity-100 transition-all">
                             <Button 
                               variant="ghost" 
                               size="icon" 
@@ -532,12 +536,12 @@ export default function AdminPage() {
 
         {activeTab === 'competitions' && (
           <div className="space-y-8">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <h2 className="text-3xl font-headline font-bold text-slate-900">Gestion des Compétitions</h2>
                 <p className="text-slate-500">Créez et gérez les concours de pêche.</p>
               </div>
-              <Button onClick={() => setIsContestDialogOpen(true)} className="bg-[#0a3d62] font-bold">
+              <Button onClick={() => setIsContestDialogOpen(true)} className="bg-[#0a3d62] font-bold w-full sm:w-auto">
                 <Plus className="mr-2 h-5 w-5" /> Nouveau Concours
               </Button>
             </div>
