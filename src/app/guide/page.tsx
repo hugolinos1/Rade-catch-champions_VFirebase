@@ -472,7 +472,7 @@ export default function GuidePage() {
                   <CardContent>
                     <p className="text-slate-600 leading-relaxed">{viewingFish.description}</p>
                   </CardContent>
-                </div>
+                </Card>
               </div>
             )}
           </DialogContent>
@@ -614,9 +614,9 @@ export default function GuidePage() {
               <DialogTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" /> Assistant de Recherche IA
               </DialogTitle>
-              <DialogHeaderDescription>
+              <DialogDescription>
                 Saisissez le **nom du poisson** (ex: Bar commun). L'IA recherchera toutes les informations pour vous.
-              </DialogHeaderDescription>
+              </DialogDescription>
             </DialogHeader>
             <div className="py-4 space-y-4">
               <div className="space-y-2">
