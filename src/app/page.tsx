@@ -34,8 +34,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Background Video */}
-          <div className="absolute inset-0 z-10 opacity-50 pointer-events-none overflow-hidden">
+          {/* Background Video Layer */}
+          <div className="absolute inset-0 z-10 opacity-40 pointer-events-none overflow-hidden">
              <video 
                 autoPlay 
                 muted 
@@ -44,18 +44,13 @@ export default function Home() {
                 poster="https://picsum.photos/seed/fishing/1200/800"
                 className="w-full h-full object-cover"
               >
-                {/* 1. Chemin local : placez votre fichier dans /public/hero-video.mp4 */}
+                {/* Le fichier doit être dans /public/hero-video.mp4 */}
                 <source src="/hero-video.mp4" type="video/mp4" />
-                
-                {/* 2. Fallback Google Drive (souvent bloqué par le navigateur) */}
-                <source src="https://docs.google.com/uc?export=download&id=15fkUx5y56SUPDFJ1-vYLvbuPb6vG1XhQ" type="video/mp4" />
-                
-                {/* Si aucune vidéo ne charge, le 'poster' s'affichera */}
               </video>
           </div>
           
-          {/* Dégradé pour améliorer la lisibilité du texte */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a3d62] via-[#0a3d62]/70 to-transparent z-10" />
+          {/* Overlay gradient for readability */}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a3d62] via-[#0a3d62]/80 to-transparent z-10" />
         </section>
 
         {/* Features */}
