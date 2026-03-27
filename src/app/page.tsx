@@ -22,20 +22,20 @@ export default function Home() {
                 Participez au plus grand concours de pêche local. Enregistrez vos prises, gagnez des points et grimpez dans le classement en temps réel.
               </p>
               <div className="flex flex-wrap gap-4">
-                <Button asChild size="lg" variant="secondary" className="font-headline font-bold h-14 px-8 text-lg rounded-full">
+                <Button asChild size="lg" variant="secondary" className="font-headline font-bold h-14 px-8 text-lg rounded-full text-[#0a3d62] hover:bg-white transition-colors">
                   <Link href="/concours">
                     Saisir une Prise <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
-                <Button asChild size="lg" variant="outline" className="bg-transparent text-white border-white/40 hover:bg-white hover:text-[#0a3d62] font-headline font-bold h-14 px-8 text-lg rounded-full backdrop-blur-sm">
+                <Button asChild size="lg" variant="outline" className="bg-transparent text-white border-white/40 hover:bg-white hover:text-[#0a3d62] font-headline font-bold h-14 px-8 text-lg rounded-full backdrop-blur-sm transition-all">
                   <Link href="/guide">Le Guide des Poissons</Link>
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Background Video using Google Drive Direct Link */}
-          <div className="absolute inset-0 z-10 opacity-40 pointer-events-none overflow-hidden">
+          {/* Background Video */}
+          <div className="absolute inset-0 z-10 opacity-50 pointer-events-none overflow-hidden">
              <video 
                 autoPlay 
                 muted 
@@ -44,19 +44,24 @@ export default function Home() {
                 poster="https://picsum.photos/seed/fishing/1200/800"
                 className="w-full h-full object-cover"
               >
+                {/* 1. Chemin local : placez votre fichier dans /public/hero-video.mp4 */}
+                <source src="/hero-video.mp4" type="video/mp4" />
+                
+                {/* 2. Fallback Google Drive (souvent bloqué par le navigateur) */}
                 <source src="https://docs.google.com/uc?export=download&id=15fkUx5y56SUPDFJ1-vYLvbuPb6vG1XhQ" type="video/mp4" />
-                {/* Fallback image is handled by the poster and the section background */}
+                
+                {/* Si aucune vidéo ne charge, le 'poster' s'affichera */}
               </video>
           </div>
           
           {/* Dégradé pour améliorer la lisibilité du texte */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a3d62] via-[#0a3d62]/60 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a3d62] via-[#0a3d62]/70 to-transparent z-10" />
         </section>
 
         {/* Features */}
         <section className="py-24 container mx-auto px-4">
           <div className="grid md:grid-cols-3 gap-8">
-            <Card className="border-none shadow-xl bg-white transition-all hover:-translate-y-1">
+            <Card className="border-none shadow-xl bg-white transition-all hover:-translate-y-2 duration-300">
               <CardHeader>
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
                   <Fish className="h-7 w-7 text-[#0a3d62]" />
@@ -73,7 +78,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-xl bg-white transition-all hover:-translate-y-1">
+            <Card className="border-none shadow-xl bg-white transition-all hover:-translate-y-2 duration-300">
               <CardHeader>
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
                   <CirclePlus className="h-7 w-7 text-[#0a3d62]" />
@@ -90,7 +95,7 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-none shadow-xl bg-white transition-all hover:-translate-y-1">
+            <Card className="border-none shadow-xl bg-white transition-all hover:-translate-y-2 duration-300">
               <CardHeader>
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
                   <Trophy className="h-7 w-7 text-[#0a3d62]" />
