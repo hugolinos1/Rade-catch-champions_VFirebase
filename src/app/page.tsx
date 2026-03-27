@@ -34,7 +34,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Background Video */}
+          {/* Background Video using Google Drive Direct Link */}
           <div className="absolute inset-0 z-10 opacity-40 pointer-events-none overflow-hidden">
              <video 
                 autoPlay 
@@ -44,8 +44,8 @@ export default function Home() {
                 poster="https://picsum.photos/seed/fishing/1200/800"
                 className="w-full h-full object-cover"
               >
-                <source src="/hero-video.mp4" type="video/mp4" />
-                {/* Fallback image est gérée par le poster et le fond de la section */}
+                <source src="https://docs.google.com/uc?export=download&id=15fkUx5y56SUPDFJ1-vYLvbuPb6vG1XhQ" type="video/mp4" />
+                {/* Fallback image is handled by the poster and the section background */}
               </video>
           </div>
           
